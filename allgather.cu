@@ -72,6 +72,8 @@ int main(int argc, char *argv[]) {
     }
 
     int my_rank, num_pes;
+    int num_gpus_per_node;
+    int msg_count;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -84,7 +86,6 @@ int main(int argc, char *argv[]) {
     }
 
     // Initialize GPU context
-    int num_gpus_per_node;
     cudaGetDeviceCount(&num_gpus_per_node);
     cudaSetDevice((my_rank % num_gpus_per_node));
 
@@ -147,11 +148,13 @@ int main(int argc, char *argv[]) {
     fflush(NULL);
 
     for (int msg_size = min_msg_size; msg_size <= max_msg_size; msg_size *= 2) {
+	msg_count = msg_size / sizeof(nv_bfloat16);
+
 	// warmup iterations
 	for (int i = 0; i < NUM_WARMUP_ITERATIONS; ++i) {
             #ifdef USE_MPI
-	    MPICHECK(MPI_Iallgather(d_local_data, msg_size, mpi_type_bfloat16,
-		d_global_data, msg_size, mpi_type_bfloat16, MPI_COMM_WORLD, &request));
+	    MPICHECK(MPI_Iallgather(d_local_data, msg_count, mpi_type_bfloat16,
+		d_global_data, msg_count, mpi_type_bfloat16, MPI_COMM_WORLD, &request));
                 
             MPICHECK(MPI_Wait(&request, &status));
             #elif defined(USE_NCCL)
@@ -166,8 +169,8 @@ int main(int argc, char *argv[]) {
         start_time = MPI_Wtime();
 	for (int i = 0; i < iterations; ++i) {
             #ifdef USE_MPI
-            MPICHECK(MPI_Iallgather(d_local_data, msg_size, mpi_type_bfloat16,
-                d_global_data, msg_size, mpi_type_bfloat16, MPI_COMM_WORLD, &request));
+            MPICHECK(MPI_Iallgather(d_local_data, msg_count, mpi_type_bfloat16,
+                d_global_data, msg_count, mpi_type_bfloat16, MPI_COMM_WORLD, &request));
 
             MPICHECK(MPI_Wait(&request, &status));
             #elif defined(USE_NCCL)
@@ -180,7 +183,7 @@ int main(int argc, char *argv[]) {
         MPI_Barrier(MPI_COMM_WORLD);
         total_time = MPI_Wtime() - start_time;
 	if (my_rank == 0)
-	    printf("%d %.6f seconds\n", msg_size, total_time);
+	    printf("%d %.6f seconds\n", msg_size, (total_time / iterations));
     }
 
     // Cleanup
