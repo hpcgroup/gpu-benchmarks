@@ -22,7 +22,7 @@
 
 #define NUM_WARMUP_ITERATIONS		5
 
-#define MPICHECK(cmd) do {                          \
+#define MPI_CHECK(cmd) do {                          \
   int e = cmd;                                      \
   if( e != MPI_SUCCESS ) {                          \
     printf("Failed: MPI error %s:%d '%d'\n",        \
@@ -40,11 +40,11 @@
   }                                                 \
 } while(0)
 
-#define NCCLCHECK(cmd) do {                         \
-  ncclResult_t r = cmd;                             \
-  if (r!= ncclSuccess) {                            \
-    printf("Failed, NCCL error %s:%d '%s'\n",       \
-        __FILE__,__LINE__,ncclGetErrorString(r));   \
+#define NCCL_CHECK(cmd) do {                         \
+  ncclResult_t e = cmd;                             \
+  if (e != ncclSuccess) {                           \
+    printf("NCCL error %s:%d %s\n",                 \
+        __FILE__, __LINE__, ncclGetErrorString(e)); \
     exit(EXIT_FAILURE);                             \
   }                                                 \
 } while(0)
@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
                         0, MPI_COMM_WORLD));
 
     /* Create a new NCCL communicator */
-    NCCL_CHECK(ncclCommInitRank(&nccl_comm, num_pes, nccl_comm_id, rank));
+    NCCL_CHECK(ncclCommInitRank(&nccl_comm, num_pes, nccl_comm_id, my_rank));
 
     #elif defined(USE_RCCL)
     // TODO: fix later
@@ -153,12 +153,12 @@ int main(int argc, char *argv[]) {
 	// warmup iterations
 	for (int i = 0; i < NUM_WARMUP_ITERATIONS; ++i) {
             #ifdef USE_MPI
-	    MPICHECK(MPI_Iallgather(d_local_data, msg_count, mpi_type_bfloat16,
+	    MPI_CHECK(MPI_Iallgather(d_local_data, msg_count, mpi_type_bfloat16,
 		d_global_data, msg_count, mpi_type_bfloat16, MPI_COMM_WORLD, &request));
                 
-            MPICHECK(MPI_Wait(&request, &status));
+            MPI_CHECK(MPI_Wait(&request, &status));
             #elif defined(USE_NCCL)
-            NCCLCHECK(ncclAllGather((const void*)d_local_data, (void*)d_global_data, msg_size, ncclHalf, nccl_comm, NULL);
+            NCCL_CHECK(ncclAllGather((const void*)d_local_data, (void*)d_global_data, msg_count, ncclBfloat16, nccl_comm, NULL));
             #elif defined(USE_RCCL)
 	    // TODO: fix later
             rcclAllReduce((const void*)d_local_data, (void*)d_global_data, global_data_size, rcclInt, rcclSum, comm, NULL);
@@ -169,12 +169,12 @@ int main(int argc, char *argv[]) {
         start_time = MPI_Wtime();
 	for (int i = 0; i < iterations; ++i) {
             #ifdef USE_MPI
-            MPICHECK(MPI_Iallgather(d_local_data, msg_count, mpi_type_bfloat16,
+            MPI_CHECK(MPI_Iallgather(d_local_data, msg_count, mpi_type_bfloat16,
                 d_global_data, msg_count, mpi_type_bfloat16, MPI_COMM_WORLD, &request));
 
-            MPICHECK(MPI_Wait(&request, &status));
+            MPI_CHECK(MPI_Wait(&request, &status));
             #elif defined(USE_NCCL)
-            NCCLCHECK(ncclAllGather((const void*)d_local_data, (void*)d_global_data, msg_size, ncclHalf, nccl_comm, NULL);
+            NCCL_CHECK(ncclAllGather((const void*)d_local_data, (void*)d_global_data, msg_count, ncclBfloat16, nccl_comm, NULL));
             #elif defined(USE_RCCL)
             // TODO: fix later
             rcclAllReduce((const void*)d_local_data, (void*)d_global_data, global_data_size, rcclInt, rcclSum, comm, NULL);
