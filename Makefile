@@ -6,7 +6,7 @@
 CC	= cc
 INC	= -I/global/common/software/nersc9/nccl/2.19.4/include
 CFLAGS	= -std=c++11 -O2 -target-accel=nvidia80 --cuda-gpu-arch=sm_80 -DUSE_CUDA -DUSE_NCCL
-LDFLAGS	= -L/global/common/software/nersc9/nccl/2.19.4/plugin/lib
+LDFLAGS	= -L/global/common/software/nersc9/nccl/2.19.4/lib -lnccl
 
 
 all: allgather.x
