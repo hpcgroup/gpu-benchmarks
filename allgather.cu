@@ -1,4 +1,4 @@
-/* \file allgather.c
+/* \file allgather.cu
  * Copyright 2024 Parallel Software and Systems Group, University of Maryland.
  * See the top-level LICENSE file for details.
  * 
@@ -22,7 +22,7 @@
 
 #define NUM_WARMUP_ITERATIONS		5
 
-#define MPI_CHECK(cmd) do {                          \
+#define MPI_CHECK(cmd) do {                         \
   int e = cmd;                                      \
   if( e != MPI_SUCCESS ) {                          \
     printf("Failed: MPI error %s:%d '%d'\n",        \
@@ -40,7 +40,7 @@
   }                                                 \
 } while(0)
 
-#define NCCL_CHECK(cmd) do {                         \
+#define NCCL_CHECK(cmd) do {                        \
   ncclResult_t e = cmd;                             \
   if (e != ncclSuccess) {                           \
     printf("NCCL error %s:%d %s\n",                 \
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
     cudaGetDeviceCount(&num_gpus_per_node);
     cudaSetDevice((my_rank % num_gpus_per_node));
 
-    int local_data_size = max_msg_size; // Size of local data to be reduced
+    int local_data_size = max_msg_size; // Size of local data
     int global_data_size = local_data_size * num_gpus; // Size of global data
 
     nv_bfloat16 *local_data = (nv_bfloat16*)malloc(local_data_size);
@@ -149,7 +149,6 @@ int main(int argc, char *argv[]) {
 
     for (int msg_size = min_msg_size; msg_size <= max_msg_size; msg_size *= 2) {
 	msg_count = msg_size / sizeof(nv_bfloat16);
-
 	// warmup iterations
 	for (int i = 0; i < NUM_WARMUP_ITERATIONS; ++i) {
             #ifdef USE_MPI
@@ -164,6 +163,9 @@ int main(int argc, char *argv[]) {
             rcclAllReduce((const void*)d_local_data, (void*)d_global_data, global_data_size, rcclInt, rcclSum, comm, NULL);
             #endif
         }
+
+	if(msg_size >= 8388608)
+	    iterations = 20;
 
         MPI_Barrier(MPI_COMM_WORLD);
         start_time = MPI_Wtime();
