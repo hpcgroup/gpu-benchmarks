@@ -1,4 +1,4 @@
-/* \file allgather.c
+/* \file allgather.cu
  * Copyright 2024 Parallel Software and Systems Group, University of Maryland.
  * See the top-level LICENSE file for details.
  * 
@@ -56,17 +56,16 @@ void initializeData(nv_bfloat16 *data, int size) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 5) {
-        fprintf(stderr, "Usage: %s <num_gpus> <min_msg_size> <max_msg_size> <iterations>\n", argv[0]);
+    if (argc != 4) {
+        fprintf(stderr, "Usage: %s <num_gpus> <min_msg_size> <max_msg_size> \n", argv[0]);
         return EXIT_FAILURE;
     }
 
     int num_gpus = atoi(argv[1]);
     int min_msg_size = atoi(argv[2]);
     int max_msg_size = atoi(argv[3]);
-    int iterations = atoi(argv[4]);
 
-    if (num_gpus < 2 || min_msg_size <= 0 || max_msg_size <= 0 || min_msg_size > max_msg_size || iterations <= 0) {
+    if (num_gpus < 2 || min_msg_size <= 0 || max_msg_size <= 0 || min_msg_size > max_msg_size) {
         fprintf(stderr, "Invalid input parameters.\n");
         return EXIT_FAILURE;
     }
@@ -89,7 +88,7 @@ int main(int argc, char *argv[]) {
     cudaGetDeviceCount(&num_gpus_per_node);
     cudaSetDevice((my_rank % num_gpus_per_node));
 
-    int local_data_size = max_msg_size; // Size of local data to be reduced
+    int local_data_size = max_msg_size; // Size of local data
     int global_data_size = local_data_size * num_gpus; // Size of global data
 
     nv_bfloat16 *local_data = (nv_bfloat16*)malloc(local_data_size);
@@ -124,7 +123,6 @@ int main(int argc, char *argv[]) {
     /* distribute nccl_comm_id to all ranks */
     MPI_CHECK(MPI_Bcast((void *)&nccl_comm_id, sizeof(nccl_comm_id), MPI_BYTE,
                         0, MPI_COMM_WORLD));
-
     /* Create a new NCCL communicator */
     NCCL_CHECK(ncclCommInitRank(&nccl_comm, num_pes, nccl_comm_id, my_rank));
 
@@ -142,8 +140,7 @@ int main(int argc, char *argv[]) {
     // Print benchmark results
     if (my_rank == 0) {
         printf("Number of GPUs: %d\n", num_gpus);
-        printf("Message size range: %d - %d\n", min_msg_size, max_msg_size);
-        printf("Number of iterations: %d\n", iterations);
+        printf("Message size range: %d - %d MB \n", min_msg_size / 1000000, max_msg_size / 1000000);
     }
     fflush(NULL);
 
@@ -159,22 +156,32 @@ int main(int argc, char *argv[]) {
             MPI_CHECK(MPI_Wait(&request, &status));
             #elif defined(USE_NCCL)
             NCCL_CHECK(ncclAllGather((const void*)d_local_data, (void*)d_global_data, msg_count, ncclBfloat16, nccl_comm, NULL));
+	    cudaDeviceSynchronize();
             #elif defined(USE_RCCL)
 	    // TODO: fix later
             rcclAllReduce((const void*)d_local_data, (void*)d_global_data, global_data_size, rcclInt, rcclSum, comm, NULL);
             #endif
         }
-
+	int iterations;
+	if (msg_size <= 8000000) {
+	    iterations = 25;
+	}
+	else {
+	    iterations = 10;
+	}
         MPI_Barrier(MPI_COMM_WORLD);
         start_time = MPI_Wtime();
+
 	for (int i = 0; i < iterations; ++i) {
             #ifdef USE_MPI
             MPI_CHECK(MPI_Iallgather(d_local_data, msg_count, mpi_type_bfloat16,
                 d_global_data, msg_count, mpi_type_bfloat16, MPI_COMM_WORLD, &request));
 
             MPI_CHECK(MPI_Wait(&request, &status));
+	    
             #elif defined(USE_NCCL)
             NCCL_CHECK(ncclAllGather((const void*)d_local_data, (void*)d_global_data, msg_count, ncclBfloat16, nccl_comm, NULL));
+	    cudaDeviceSynchronize();
             #elif defined(USE_RCCL)
             // TODO: fix later
             rcclAllReduce((const void*)d_local_data, (void*)d_global_data, global_data_size, rcclInt, rcclSum, comm, NULL);
@@ -183,7 +190,7 @@ int main(int argc, char *argv[]) {
         MPI_Barrier(MPI_COMM_WORLD);
         total_time = MPI_Wtime() - start_time;
 	if (my_rank == 0)
-	    printf("%d %.6f seconds\n", msg_size, (total_time / iterations));
+	    printf("%d %.6f seconds\n", msg_size / 1000000, (total_time / iterations));
     }
 
     // Cleanup
@@ -201,4 +208,3 @@ int main(int argc, char *argv[]) {
     MPI_Finalize();
     return EXIT_SUCCESS;
 }
-
