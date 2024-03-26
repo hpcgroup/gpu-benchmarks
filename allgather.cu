@@ -158,6 +158,7 @@ int main(int argc, char *argv[]) {
             MPI_CHECK(MPI_Wait(&request, &status));
             #elif defined(USE_NCCL)
             NCCL_CHECK(ncclAllGather((const void*)d_local_data, (void*)d_global_data, msg_count, ncclBfloat16, nccl_comm, NULL));
+	    cudaDeviceSynchronize();
             #elif defined(USE_RCCL)
 	    // TODO: fix later
             rcclAllReduce((const void*)d_local_data, (void*)d_global_data, global_data_size, rcclInt, rcclSum, comm, NULL);
@@ -177,6 +178,7 @@ int main(int argc, char *argv[]) {
             MPI_CHECK(MPI_Wait(&request, &status));
             #elif defined(USE_NCCL)
             NCCL_CHECK(ncclAllGather((const void*)d_local_data, (void*)d_global_data, msg_count, ncclBfloat16, nccl_comm, NULL));
+	    cudaDeviceSynchronize();
             #elif defined(USE_RCCL)
             // TODO: fix later
             rcclAllReduce((const void*)d_local_data, (void*)d_global_data, global_data_size, rcclInt, rcclSum, comm, NULL);
