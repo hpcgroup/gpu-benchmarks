@@ -15,4 +15,4 @@ allgather.x: allgather.cu
 	${CC} ${CFLAGS} ${INC} ${LDFLAGS} -o allgather.x allgather.cu
 
 clean: 
-	rm -f allgather.x
+	rm -f allgather.x 
