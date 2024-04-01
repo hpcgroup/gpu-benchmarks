@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
-#include <iostream>
 #ifdef USE_CUDA
   #include <cuda_bf16.h>
   #define bfloat16 nv_bfloat16
