@@ -75,10 +75,14 @@ void initializeData(bfloat16 *data, int size) {
 }
 
 void custom_bf16_sum(void *invec, void *inoutvec, int *len, MPI_Datatype *datatype) {
-	nv_bfloat16* in = (nv_bfloat16*) invec;
-	nv_bfloat16* inout = (nv_bfloat16*) inoutvec;
+	bfloat16* in = (bfloat16*) invec;
+	bfloat16* inout = (bfloat16*) inoutvec;
 	for (int i = 0; i < *len; i++)
+        #ifdef USE_CUDA
 	    inout[i] = __hadd(in[i], inout[i]);
+        #elif USE_ROCM
+        inout[i] = in[i] + inout[i];
+        #endif
 }
 
 int main(int argc, char *argv[]) {
