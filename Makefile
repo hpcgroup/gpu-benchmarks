@@ -3,17 +3,17 @@
 # 
 # SPDX-License-Identifier: MIT
 
-CC	= cc
+CC = cc
 
 # perlmutter flags
-# INC	= -I/global/common/software/nersc9/nccl/2.19.4/include
-# CFLAGS	= -std=c++11 -O2 -target-accel=nvidia80 --cuda-gpu-arch=sm_80 -DUSE_CUDA -DUSE_NCCL
-# LDFLAGS	= -L/global/common/software/nersc9/nccl/2.19.4/lib -lnccl
+# INC = -I/global/common/software/nersc9/nccl/2.19.4/include
+# CFLAGS = -std=c++11 -O2 -target-accel=nvidia80 --cuda-gpu-arch=sm_80 -DUSE_CUDA -DUSE_NCCL
+# LDFLAGS = -L/global/common/software/nersc9/nccl/2.19.4/lib -lnccl
 
 # frontier flags
-INC = -L${ROCM_PATH}/lib -lamdhip64
-CFLAGS = -std=c++11 -D__HIP_ROCclr__ -D__HIP_ARCH_GFX90A__=1 --rocm-path=${ROCM_PATH} --offload-arch=gfx90a -x hip -DUSE_ROCM -DUSE_RCCL
-LDFLAGS = --rocm-path=${ROCM_PATH} -lrccl
+INC = -I${ROCM_PATH}/include
+CFLAGS = -std=c++11 -O2 -D__HIP_ROCclr__ -D__HIP_ARCH_GFX90A__=1 --rocm-path=${ROCM_PATH} --offload-arch=gfx90a -x hip -DUSE_ROCM -DUSE_RCCL
+LDFLAGS = -L${ROCM_PATH}/lib -lamdhip64 -lrccl
 
 all: allgather.x
 
