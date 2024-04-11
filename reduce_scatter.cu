@@ -1,4 +1,4 @@
-/* \file allreduce.cu
+/* \file reduce_scatter.cu
  * Copyright 2024 Parallel Software and Systems Group, University of Maryland.
  * See the top-level LICENSE file for details.
  * 
@@ -174,6 +174,13 @@ int main(int argc, char *argv[]) {
     NCCL_CHECK(ncclCommInitRank(&nccl_comm, num_pes, nccl_comm_id, my_rank));
     #endif
 
+    // init recvcounts to send an equal portion of data from the reduce operation
+    int num_elements = local_data_size / sizeof(bfloat16);
+    int portion = num_elements / num_pes;
+    int *recvcounts = (int*) malloc(sizeof(int) * num_pes);
+    for (int i = 0; i < num_pes; i++) 
+        recvcounts[i] = portion;
+
     // Perform MPI_Iallgather, NCCL allgather, or RCCL allgather
     double total_time, start_time;
     MPI_Request request;
@@ -192,12 +199,12 @@ int main(int argc, char *argv[]) {
 	// warmup iterations
 	for (int i = 0; i < NUM_WARMUP_ITERATIONS; ++i) {
             #ifdef USE_MPI
-            MPI_CHECK(MPI_Iallreduce(d_local_data, d_global_data, msg_count, mpi_type_bfloat16,
+            MPI_CHECK(MPI_Ireduce_scatter(d_local_data, d_global_data, recvcounts, mpi_type_bfloat16,
                 CUSTOM_SUM, MPI_COMM_WORLD, &request));
 
             MPI_CHECK(MPI_Wait(&request, &status));
             #elif defined(USE_NCCL) || defined(USE_RCCL)
-            NCCL_CHECK(ncclAllReduce((const void*)d_local_data, (void*)d_global_data, msg_count, ncclBfloat16, ncclSum, nccl_comm, NULL));
+            NCCL_CHECK(ncclReduceScatter((const void*)d_local_data, (void*)d_global_data, portion, ncclBfloat16, ncclSum, nccl_comm, NULL));
             #endif
             
             #ifdef USE_CUDA
@@ -214,12 +221,12 @@ int main(int argc, char *argv[]) {
         start_time = MPI_Wtime();
 	for (int i = 0; i < iterations; ++i) {
             #ifdef USE_MPI
-            MPI_CHECK(MPI_Iallreduce(d_local_data, d_global_data, msg_count, mpi_type_bfloat16,
+            MPI_CHECK(MPI_Ireduce_scatter(d_local_data, d_global_data, recvcounts, mpi_type_bfloat16,
                 CUSTOM_SUM, MPI_COMM_WORLD, &request));
 
             MPI_CHECK(MPI_Wait(&request, &status));
             #elif defined(USE_NCCL) || defined(USE_RCCL)
-            NCCL_CHECK(ncclAllReduce((const void*)d_local_data, (void*)d_global_data, msg_count, ncclBfloat16, ncclSum, nccl_comm, NULL));
+            NCCL_CHECK(ncclReduceScatter((const void*)d_local_data, (void*)d_global_data, portion, ncclBfloat16, ncclSum, nccl_comm, NULL));
             #endif
             
             #ifdef USE_CUDA
@@ -252,4 +259,3 @@ int main(int argc, char *argv[]) {
     MPI_Finalize();
     return EXIT_SUCCESS;
 }
-
