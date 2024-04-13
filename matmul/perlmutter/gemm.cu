@@ -49,11 +49,11 @@ cublasStatus_t checkCublas(cublasStatus_t result)
 }
 
 // Fill the array A(nr_rows_A, nr_cols_A) with random numbers on CPU
-void CPU_fill_rand(__half *A, int nr_rows_A, int nr_cols_A) {
+void CPU_fill_rand(float *A, int nr_rows_A, int nr_cols_A) {
 	int a=1;
 
     for(int i = 0; i < nr_rows_A * nr_cols_A; i++){
-		A[i] = approx_float_to_half((float)rand()/(float)(RAND_MAX/a));
+          A[i] = (float)rand()/(float)(RAND_MAX/a);
 	}
 }
 
@@ -83,9 +83,9 @@ int main(int argc, char ** argv){
   
   // Allocate 3 arrays on CPU
   
-  __half *h_A = (__half *)malloc(max_m_k_n * max_m_k_n * sizeof(__half));
-  __half *h_B = (__half *)malloc(max_m_k_n * max_m_k_n * sizeof(__half));
-  __half *h_C = (__half *)malloc(max_m_k_n * max_m_k_n * sizeof(__half));
+  float *h_A = (float *)malloc(max_m_k_n * max_m_k_n * sizeof(float));
+  float *h_B = (float *)malloc(max_m_k_n * max_m_k_n * sizeof(float));
+  float *h_C = (float *)malloc(max_m_k_n * max_m_k_n * sizeof(float));
 
   CPU_fill_rand(h_A, max_m_k_n, max_m_k_n);
   CPU_fill_rand(h_B, max_m_k_n, max_m_k_n);
@@ -93,13 +93,15 @@ int main(int argc, char ** argv){
   
   // Allocate 3 arrays on GPU
   __half *d_A, *d_B, *d_C;
-  checkCuda(cudaMalloc(&d_A, max_m_k_n * max_m_k_n * sizeof(__half)));
-  checkCuda(cudaMalloc(&d_B, max_m_k_n * max_m_k_n * sizeof(__half)));
-  checkCuda(cudaMalloc(&d_C, max_m_k_n * max_m_k_n * sizeof(__half)));    
+  checkCuda(cudaMallocManaged(&d_A, max_m_k_n * max_m_k_n * sizeof(__half)));
+  checkCuda(cudaMallocManaged(&d_B, max_m_k_n * max_m_k_n * sizeof(__half)));
+  checkCuda(cudaMallocManaged(&d_C, max_m_k_n * max_m_k_n * sizeof(__half)));    
   
-  checkCuda(cudaMemcpy(d_A,h_A,max_m_k_n * max_m_k_n * sizeof(__half),cudaMemcpyHostToDevice));
-  checkCuda(cudaMemcpy(d_B,h_B,max_m_k_n * max_m_k_n * sizeof(__half),cudaMemcpyHostToDevice));
-  checkCuda(cudaMemcpy(d_C,h_C,max_m_k_n * max_m_k_n * sizeof(__half),cudaMemcpyHostToDevice));
+  for (int i = 0; i < max_m_k_n * max_m_k_n; i++) {
+    d_A[i] = approx_float_to_half(h_A[i]);
+    d_B[i] = approx_float_to_half(h_B[i]);
+    d_C[i] = approx_float_to_half(h_C[i]);
+  }
 
   int lda, ldb, ldc, m, n, k;
   const __half alf = approx_float_to_half(1.0);
