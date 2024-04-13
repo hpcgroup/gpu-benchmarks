@@ -6,28 +6,29 @@
 #include <hip/hip_runtime_api.h>
 #include <hip/hip_fp16.h>
 #include <hipblas/hipblas.h>
+#include <rocblas.h>
 #include "../fp16_conversion.h"
 
 using namespace std;
 
-#define FP16MM
-
-const char* hipblasGetErrorString(hipblasStatus_t status)
+const char* rocblasGetErrorString(rocblas_status status)
 {
     switch(status)
     {
-        case HIPBLAS_STATUS_SUCCESS: return "HIPBLAS_STATUS_SUCCESS";
-        case HIPBLAS_STATUS_NOT_INITIALIZED: return "HIPBLAS_STATUS_NOT_INITIALIZED";
-        case HIPBLAS_STATUS_ALLOC_FAILED: return "HIPBLAS_STATUS_ALLOC_FAILED";
-        case HIPBLAS_STATUS_INVALID_VALUE: return "HIPBLAS_STATUS_INVALID_VALUE"; 
-        case HIPBLAS_STATUS_ARCH_MISMATCH: return "HIPBLAS_STATUS_ARCH_MISMATCH"; 
-        case HIPBLAS_STATUS_MAPPING_ERROR: return "HIPBLAS_STATUS_MAPPING_ERROR";
-        case HIPBLAS_STATUS_EXECUTION_FAILED: return "HIPBLAS_STATUS_EXECUTION_FAILED"; 
-        case HIPBLAS_STATUS_INTERNAL_ERROR: return "HIPBLAS_STATUS_INTERNAL_ERROR"; 
-        case HIPBLAS_STATUS_NOT_SUPPORTED: return "HIPBLAS_STATUS_NOT_SUPPORTED";
-        case HIPBLAS_STATUS_HANDLE_IS_NULLPTR: return "HIPBLAS_STATUS_HANDLE_IS_NULLPTR";
-        case HIPBLAS_STATUS_INVALID_ENUM: return "HIPBLAS_STATUS_INVALID_ENUM";
-        case HIPBLAS_STATUS_UNKNOWN: return "HIPBLAS_STATUS_UNKNOWN";
+        case rocblas_status_success: return "rocblas_status_success";
+	case rocblas_status_invalid_handle: return "rocblas_status_invalid_handle";
+	case rocblas_status_not_implemented: return "rocblas_status_not_implemented";
+	case rocblas_status_invalid_pointer: return "rocblas_status_invalid_pointer";
+	case rocblas_status_invalid_size: return "rocblas_status_invalid_size";
+        case rocblas_status_memory_error: return "rocblas_status_memory_error";
+	case rocblas_status_internal_error: return "rocblas_status_internal_error";
+	case rocblas_status_perf_degraded: return "rocblas_status_perf_degraded";
+	case rocblas_status_size_query_mismatch: return "rocblas_status_size_query_mismatch";
+	case rocblas_status_size_increased: return "rocblas_status_size_increased";
+	case rocblas_status_size_unchanged: return "rocblas_status_size_unchanged";
+	case rocblas_status_invalid_value: return "rocblas_status_invalid_value";
+	case rocblas_status_continue: return "rocblas_status_continue";
+	case rocblas_status_check_numerics_fail: return "rocblas_status_check_numerics_fail";
     }
     return "unknown error";
 }
@@ -45,11 +46,11 @@ hipError_t checkHip(hipError_t result)
 }
 
 inline
-hipblasStatus_t checkCublas(hipblasStatus_t result)
+rocblas_status checkRocblas(rocblas_status result)
 {
-  if (result != HIPBLAS_STATUS_SUCCESS) {
-    fprintf(stderr, "HIP Runtime Error: %s\n", hipblasGetErrorString(result));
-    assert(result == HIPBLAS_STATUS_SUCCESS);
+  if (result != rocblas_status_success) {
+    fprintf(stderr, "ROCM Runtime Error: %s\n", rocblasGetErrorString(result));
+    assert(result == rocblas_status_success);
   }
   return result;
 }
@@ -59,8 +60,8 @@ void CPU_fill_rand(float *A, int nr_rows_A, int nr_cols_A) {
 	int a=1;
 
     for(int i = 0; i < nr_rows_A * nr_cols_A; i++){
-		A[i] = (float)rand()/(float)(RAND_MAX/a);
-	}
+        A[i] = (float)rand()/(float)(RAND_MAX/a);		
+    }
 }
 
 int main(int argc, char ** argv){
@@ -71,12 +72,6 @@ int main(int argc, char ** argv){
   int repeats = 100;
   int verbose = 1;
 
-#ifndef FP16MM
-  cout << "\nhipblasSgemm test result:\n" << endl;
-#else
-  cout << "\nhipblasHgemm test result:\n" << endl;
-#endif
-  
   if(verbose) 
     cout << "running with" 
 	 << " min_m_k_n: " << min_m_k_n
@@ -84,10 +79,10 @@ int main(int argc, char ** argv){
 	 << " repeats: " << repeats
 	 << endl;
 
-  hipblasStatus_t stat;
-  hipblasHandle_t handle;
+  rocblas_status stat;
+  rocblas_handle handle;
 
-  checkCublas(hipblasCreate(&handle));
+  checkRocblas(rocblas_create_handle(&handle));
 
   if(verbose) cout << "allocating device variables" << endl;
   
@@ -101,29 +96,18 @@ int main(int argc, char ** argv){
   CPU_fill_rand(h_B, max_m_k_n, max_m_k_n);
   CPU_fill_rand(h_C, max_m_k_n, max_m_k_n);
 
-#ifndef FP16MM
     // Allocate 3 arrays on GPU
-    float *d_A, *d_B, *d_C;
-    checkHip(hipMallocManaged(&d_A, max_m_k_n * max_m_k_n * sizeof(float)));
-    checkHip(hipMallocManaged(&d_B, max_m_k_n * max_m_k_n * sizeof(float)));
-    checkHip(hipMallocManaged(&d_C, max_m_k_n * max_m_k_n * sizeof(float)));
+    uint16_t *d_A, *d_B, *d_C, *d_D;
+    checkHip(hipMalloc(&d_A, max_m_k_n * max_m_k_n * sizeof(uint16_t)));
+    checkHip(hipMalloc(&d_B, max_m_k_n * max_m_k_n * sizeof(uint16_t)));
+    checkHip(hipMalloc(&d_C, max_m_k_n * max_m_k_n * sizeof(uint16_t)));
     
-    checkHip(hipMemcpy(d_A,h_A,max_m_k_n * max_m_k_n * sizeof(float),hipMemcpyHostToDevice));
-    checkHip(hipMemcpy(d_B,h_B,max_m_k_n * max_m_k_n * sizeof(float),hipMemcpyHostToDevice));
-    checkHip(hipMemcpy(d_C,h_C,max_m_k_n * max_m_k_n * sizeof(float),hipMemcpyHostToDevice));
-    
-    int lda, ldb, ldc, m, n, k;
-    const float alf = 1.0f;
-    const float bet = 0.0f;
-    const float *alpha = &alf;
-    const float *beta = &bet;
-  
-#else
-    
-    uint16_t *d_A, *d_B, *d_C;
-    checkHip(hipMallocManaged(&d_A, max_m_k_n * max_m_k_n * sizeof(uint16_t)));
-    checkHip(hipMallocManaged(&d_B, max_m_k_n * max_m_k_n * sizeof(uint16_t)));
-    checkHip(hipMallocManaged(&d_C, max_m_k_n * max_m_k_n * sizeof(uint16_t)));
+    // rocblas_gemm_ex requries D array too
+    checkHip(hipMalloc(&d_D, max_m_k_n * max_m_k_n * sizeof(uint16_t)));
+
+    checkHip(hipMemcpy(d_A,h_A,max_m_k_n * max_m_k_n * sizeof(uint16_t),hipMemcpyHostToDevice));
+    checkHip(hipMemcpy(d_B,h_B,max_m_k_n * max_m_k_n * sizeof(uint16_t),hipMemcpyHostToDevice));
+    checkHip(hipMemcpy(d_C,h_C,max_m_k_n * max_m_k_n * sizeof(uint16_t),hipMemcpyHostToDevice));
 
     for (int i = 0; i < max_m_k_n * max_m_k_n; i++) {
         half temp_a = approx_float_to_half(h_A[i]);
@@ -134,7 +118,7 @@ int main(int argc, char ** argv){
         d_C[i] = *((uint16_t*) &temp_c);
     }
 
-    int lda, ldb, ldc, m, n, k;
+    int lda, ldb, ldd, ldc, m, n, k;
     half temp_alf = approx_float_to_half(1.0f);
     half temp_bet = approx_float_to_half(0.0f);
     const uint16_t alf = *((uint16_t*) &temp_alf);
@@ -142,8 +126,6 @@ int main(int argc, char ** argv){
     const uint16_t *alpha = &alf;
     const uint16_t *beta = &bet;
 
-#endif
-  
   hipEvent_t start, stop;
   hipEventCreate(&start);
   hipEventCreate(&stop);
@@ -156,15 +138,15 @@ int main(int argc, char ** argv){
 	  lda = m;
 	  ldb = k;
 	  ldc = m;
-#ifndef FP16MM
-        stat = hipblasSgemm(handle, HIPBLAS_OP_N, HIPBLAS_OP_N, m, n, k, alpha, d_A, lda, d_B, ldb, beta, d_C, ldc); 
-#else
-	stat = hipblasHgemm(handle, HIPBLAS_OP_N, HIPBLAS_OP_N, m, n, k, alpha, d_A, lda, d_B, ldb, beta, d_C, ldc); 
-#endif
+	  ldd = m;
+
+
+      stat = rocblas_gemm_ex(handle, rocblas_operation_none, rocblas_operation_none, m, n, k, alpha, d_A, rocblas_datatype_bf16_r, lda, d_B, rocblas_datatype_bf16_r, ldb, beta, d_C, rocblas_datatype_bf16_r, ldc, d_D, rocblas_datatype_bf16_r, ldd, rocblas_datatype_f32_r, rocblas_gemm_algo_standard, 0, 0);
+
       hipEventRecord(stop,0);
       hipEventSynchronize(stop);
-      if(stat != HIPBLAS_STATUS_SUCCESS){
-	cerr << "hipblasSgemmBatched failed" << endl;
+      if(stat != rocblas_status_success){
+	fprintf(stderr, "RocBLAS Error: %s\n", rocblasGetErrorString(stat));
 	exit(1);
       }
       assert(!hipGetLastError());
@@ -176,11 +158,7 @@ int main(int argc, char ** argv){
           sum += elapsed;
       }
     }
-#ifndef FP16MM	
-  cout << "float32: size " 
-#else
-  cout << "float16: size " 
-#endif
+  cout << "bfloat16: size " 
   << size << " average: " << sum/75 << " s "<< endl;
 
   }
