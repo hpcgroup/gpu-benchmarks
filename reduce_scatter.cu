@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
+#include <stdint.h>
+
 #ifdef USE_CUDA
   #include <cuda_bf16.h>
   #define bfloat16 nv_bfloat16
@@ -27,9 +29,9 @@
 #define NUM_WARMUP_ITERATIONS		5
 
 #define MPI_CHECK(cmd) do {                         \
-  int e = cmd;                                      \
+  int64_t e = cmd;                                      \
   if( e != MPI_SUCCESS ) {                          \
-    printf("Failed: MPI error %s:%d '%d'\n",        \
+    printf("Failed: MPI error %s:%d '%ld'\n",        \
         __FILE__,__LINE__, e);                      \
     exit(EXIT_FAILURE);                             \
   }                                                 \
@@ -63,8 +65,8 @@
   }                                                 \
 } while(0)
 
-void initializeData(bfloat16 *data, int size) {
-    for (int i = 0; i < (size / sizeof(bfloat16)); ++i) {
+void initializeData(bfloat16 *data, int64_t size) {
+    for (int64_t i = 0; i < (size / sizeof(bfloat16)); ++i) {
         #ifdef USE_CUDA
         data[i] = __float2bfloat16((float)i);
         #elif USE_ROCM
@@ -74,10 +76,10 @@ void initializeData(bfloat16 *data, int size) {
     }
 }
 
-void custom_bf16_sum(void *invec, void *inoutvec, int *len, MPI_Datatype *datatype) {
+void custom_bf16_sum(void *invec, void *inoutvec, int64_t *len, MPI_Datatype *datatype) {
     bfloat16* in = (bfloat16*) invec;
     bfloat16* inout = (bfloat16*) inoutvec;
-    for (int i = 0; i < *len; i++) {
+    for (int64_t i = 0; i < *len; i++) {
         #ifdef USE_CUDA
         inout[i] = __hadd(in[i], inout[i]);
         #elif USE_ROCM
@@ -93,8 +95,8 @@ int main(int argc, char *argv[]) {
     }
 
     int num_gpus = atoi(argv[1]);
-    int min_msg_size = atoi(argv[2]);
-    int max_msg_size = atoi(argv[3]);
+    int64_t min_msg_size = atoi(argv[2]);
+    int64_t max_msg_size = atoi(argv[3]);
     int iterations = atoi(argv[4]);
 
     if (num_gpus < 2 || min_msg_size <= 0 || max_msg_size <= 0 || min_msg_size > max_msg_size || iterations <= 0) {
@@ -125,8 +127,13 @@ int main(int argc, char *argv[]) {
     hipSetDevice((my_rank % num_gpus_per_node));
     #endif
 
-    int local_data_size = max_msg_size; // Size of local data
-    int global_data_size = local_data_size; // Size of global data
+    int64_t local_data_size = max_msg_size; // Size of local data
+    int64_t global_data_size = local_data_size; // Size of global data
+
+    if (my_rank == 0) {
+        fprintf(stdout, "Local data size: %ld\n", (local_data_size / 1024) / 1024);
+        fprintf(stdout, "Global data size: %ld\n", (global_data_size / 1024) / 1024);
+    }
 
     bfloat16 *local_data = (bfloat16*)malloc(local_data_size);
     bfloat16 *global_data = (bfloat16*)malloc(global_data_size);
@@ -189,12 +196,12 @@ int main(int argc, char *argv[]) {
     // Print benchmark results
     if (my_rank == 0) {
         printf("Number of GPUs: %d\n", num_gpus);
-        printf("Message size range: %d - %d\n", min_msg_size, max_msg_size);
+        printf("Message size range: %ld - %ld\n", min_msg_size, max_msg_size);
         printf("Number of iterations: %d\n", iterations);
     }
     fflush(NULL);
 
-    for (int msg_size = min_msg_size; msg_size <= max_msg_size; msg_size *= 2) {
+    for (int64_t msg_size = min_msg_size; msg_size <= max_msg_size; msg_size *= 2) {
 	msg_count = msg_size / sizeof(bfloat16);
 	// warmup iterations
 	for (int i = 0; i < NUM_WARMUP_ITERATIONS; ++i) {
@@ -238,7 +245,7 @@ int main(int argc, char *argv[]) {
         MPI_Barrier(MPI_COMM_WORLD);
         total_time = MPI_Wtime() - start_time;
 	if (my_rank == 0)
-	    printf("%d %.6f seconds\n", msg_size, (total_time / iterations));
+	    printf("%ld %.6f seconds\n", msg_size, (total_time / iterations));
     }
 
     // Cleanup
