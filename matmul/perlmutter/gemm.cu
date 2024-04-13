@@ -65,8 +65,6 @@ int main(int argc, char ** argv){
   int repeats = 100;
   int verbose = 1;
 
-  cout << "\ncublasHgemm test result:\n" << endl;
-  
   if(verbose) 
     cout << "running with" 
 	 << " min_m_k_n: " << min_m_k_n
@@ -92,22 +90,22 @@ int main(int argc, char ** argv){
   CPU_fill_rand(h_C, max_m_k_n, max_m_k_n);
   
   // Allocate 3 arrays on GPU
-  __half *d_A, *d_B, *d_C;
-  checkCuda(cudaMallocManaged(&d_A, max_m_k_n * max_m_k_n * sizeof(__half)));
-  checkCuda(cudaMallocManaged(&d_B, max_m_k_n * max_m_k_n * sizeof(__half)));
-  checkCuda(cudaMallocManaged(&d_C, max_m_k_n * max_m_k_n * sizeof(__half)));    
+  nv_bfloat16 *d_A, *d_B, *d_C;
+  checkCuda(cudaMallocManaged(&d_A, max_m_k_n * max_m_k_n * sizeof(nv_bfloat16)));
+  checkCuda(cudaMallocManaged(&d_B, max_m_k_n * max_m_k_n * sizeof(nv_bfloat16)));
+  checkCuda(cudaMallocManaged(&d_C, max_m_k_n * max_m_k_n * sizeof(nv_bfloat16)));    
   
   for (int i = 0; i < max_m_k_n * max_m_k_n; i++) {
-    d_A[i] = approx_float_to_half(h_A[i]);
-    d_B[i] = approx_float_to_half(h_B[i]);
-    d_C[i] = approx_float_to_half(h_C[i]);
+    d_A[i] = __float2bfloat16(h_A[i]);
+    d_B[i] = __float2bfloat16(h_B[i]);
+    d_C[i] = __float2bfloat16(h_C[i]);
   }
 
   int lda, ldb, ldc, m, n, k;
-  const __half alf = approx_float_to_half(1.0);
-  const __half bet = approx_float_to_half(0.0);
-  const __half *alpha = &alf;
-  const __half *beta = &bet;
+  const nv_bfloat16 alf = __float2bfloat16(1.0f);
+  const nv_bfloat16 bet = __float2bfloat16(0.0f);
+  const nv_bfloat16 *alpha = &alf;
+  const nv_bfloat16 *beta = &bet;
   
   cudaEvent_t start, stop;
   cudaEventCreate(&start);
@@ -122,13 +120,13 @@ int main(int argc, char ** argv){
 	  ldb = k;
 	  ldc = m;
       
-      stat = cublasHgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m, n, k, alpha, d_A, lda, d_B, ldb, beta, d_C, ldc); 
+      stat = cublasGemmEx(handle, CUBLAS_OP_N, CUBLAS_OP_N, m, n, k, alpha, d_A, CUDA_R_16BF, lda, d_B, CUDA_R_16BF, ldb, beta, d_C, CUDA_R_16BF, ldc, CUBLAS_COMPUTE_32F, CUBLAS_GEMM_DEFAULT);
 
       cudaEventRecord(stop,0);
       cudaEventSynchronize(stop);
       if(stat != CUBLAS_STATUS_SUCCESS){
-	cerr << "cublasSgemmBatched failed" << endl;
-	exit(1);
+	  fprintf(stderr, "CuBLAS Error: %s\n", cublasGetErrorString(stat));
+          exit(1);
       }
       assert(!cudaGetLastError());
       
@@ -139,7 +137,7 @@ int main(int argc, char ** argv){
           sum += elapsed;
       }
     }
-  cout << "float16: size " 
+  cout << "bfloat16: size " 
   << size << " average: " << sum/75 << " s "<< endl;
 
   }
