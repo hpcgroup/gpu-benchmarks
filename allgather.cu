@@ -93,9 +93,10 @@ int main(int argc, char *argv[]) {
     int64_t local_data_size = max_msg_size; // Size of local data
     int64_t global_data_size = local_data_size * num_gpus; // Size of global data
 
-    fprintf(stdout, "Local data size: %ld\n", (local_data_size / 1024) / 1024);
-    fprintf(stdout, "Global data size: %ld\n", (global_data_size / 1024) / 1024);
-
+    if (my_rank == 0) {
+        fprintf(stdout, "Local data size: %ld\n", (local_data_size / 1024) / 1024);
+        fprintf(stdout, "Global data size: %ld\n", (global_data_size / 1024) / 1024);
+    }
     nv_bfloat16 *local_data = (nv_bfloat16*)malloc(local_data_size);
     nv_bfloat16 *global_data = (nv_bfloat16*)malloc(global_data_size);
 
