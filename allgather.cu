@@ -12,6 +12,7 @@
   #include <cuda_bf16.h>
   #define bfloat16 nv_bfloat16
 #elif USE_ROCM
+  #define __HIP_PLATFORM_AMD__
   #include <hip/hip_bfloat16.h>
   #include <hip/hip_runtime.h>
   #include <hip/hip_runtime_api.h>
