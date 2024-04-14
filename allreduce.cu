@@ -1,4 +1,4 @@
-/* \file allgather.cu
+/* \file allreduce.cu
  * Copyright 2024 Parallel Software and Systems Group, University of Maryland.
  * See the top-level LICENSE file for details.
  * 
@@ -76,6 +76,18 @@ void initializeData(bfloat16 *data, int64_t size) {
     }
 }
 
+void custom_bf16_sum(void *invec, void *inoutvec, int *len, MPI_Datatype *datatype) {
+    bfloat16* in = (bfloat16*) invec;
+    bfloat16* inout = (bfloat16*) inoutvec;
+    for (int i = 0; i < *len; i++) {
+        #ifdef USE_CUDA
+        inout[i] = __hadd(in[i], inout[i]);
+        #elif USE_ROCM
+        inout[i] = in[i] + inout[i];
+        #endif
+    }
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 5) {
         fprintf(stderr, "Usage: %s <num_gpus> <min_msg_size> <max_msg_size> <iterations>\n", argv[0]);
@@ -83,8 +95,8 @@ int main(int argc, char *argv[]) {
     }
 
     int num_gpus = atoi(argv[1]);
-    int64_t min_msg_size = atoi(argv[2]);
-    int64_t max_msg_size = atoi(argv[3]);
+    int64_t min_msg_size = strtoll(argv[2], NULL, 10);
+    int64_t max_msg_size = strtoll(argv[3], NULL, 10);
     int iterations = atoi(argv[4]);
 
     if (num_gpus < 2 || min_msg_size <= 0 || max_msg_size <= 0 || min_msg_size > max_msg_size || iterations <= 0) {
@@ -116,8 +128,8 @@ int main(int argc, char *argv[]) {
     #endif
 
     int64_t local_data_size = max_msg_size; // Size of local data
-    int64_t global_data_size = local_data_size * num_gpus; // Size of global data
-
+    int64_t global_data_size = local_data_size; // Size of global data 
+    
     if (my_rank == 0) {
         fprintf(stdout, "Local data size: %ld\n", (local_data_size / 1024) / 1024);
         fprintf(stdout, "Global data size: %ld\n", (global_data_size / 1024) / 1024);
@@ -129,7 +141,6 @@ int main(int argc, char *argv[]) {
     // Initialize local data
     initializeData(local_data, local_data_size);
 
-    // Allocate memory on GPU
     bfloat16 *d_local_data, *d_global_data;
     #ifdef USE_CUDA
     CUDA_CHECK(cudaMalloc(&d_local_data, local_data_size));
@@ -148,6 +159,10 @@ int main(int argc, char *argv[]) {
     MPI_Datatype mpi_type_bfloat16;
     MPI_Type_contiguous(2, MPI_BYTE, &mpi_type_bfloat16);
     MPI_Type_commit(&mpi_type_bfloat16);
+
+    // define custom reduce operation for nv_bfloat16 types
+    MPI_Op CUSTOM_SUM;
+    MPI_Op_create(&custom_bf16_sum, 1, &CUSTOM_SUM);
 
     #elif defined(USE_NCCL) || defined(USE_RCCL)
     ncclUniqueId nccl_comm_id;
@@ -184,14 +199,14 @@ int main(int argc, char *argv[]) {
 	// warmup iterations
 	for (int i = 0; i < NUM_WARMUP_ITERATIONS; ++i) {
             #ifdef USE_MPI
-	    MPI_CHECK(MPI_Iallgather(d_local_data, msg_count, mpi_type_bfloat16,
-		d_global_data, msg_count, mpi_type_bfloat16, MPI_COMM_WORLD, &request));
-                
+            MPI_CHECK(MPI_Iallreduce(d_local_data, d_global_data, msg_count, mpi_type_bfloat16,
+                CUSTOM_SUM, MPI_COMM_WORLD, &request));
+
             MPI_CHECK(MPI_Wait(&request, &status));
             #elif defined(USE_NCCL) || defined(USE_RCCL)
-            NCCL_CHECK(ncclAllGather((const void*)d_local_data, (void*)d_global_data, msg_count, ncclBfloat16, nccl_comm, NULL));
+            NCCL_CHECK(ncclAllReduce((const void*)d_local_data, (void*)d_global_data, msg_count, ncclBfloat16, ncclSum, nccl_comm, NULL));
             #endif
-        
+            
             #ifdef USE_CUDA
             cudaDeviceSynchronize();
             #elif USE_ROCM
@@ -206,14 +221,14 @@ int main(int argc, char *argv[]) {
         start_time = MPI_Wtime();
 	for (int i = 0; i < iterations; ++i) {
             #ifdef USE_MPI
-	    MPI_CHECK(MPI_Iallgather(d_local_data, msg_count, mpi_type_bfloat16,
-		d_global_data, msg_count, mpi_type_bfloat16, MPI_COMM_WORLD, &request));
-                
+            MPI_CHECK(MPI_Iallreduce(d_local_data, d_global_data, msg_count, mpi_type_bfloat16,
+                CUSTOM_SUM, MPI_COMM_WORLD, &request));
+
             MPI_CHECK(MPI_Wait(&request, &status));
             #elif defined(USE_NCCL) || defined(USE_RCCL)
-            NCCL_CHECK(ncclAllGather((const void*)d_local_data, (void*)d_global_data, msg_count, ncclBfloat16, nccl_comm, NULL));
+            NCCL_CHECK(ncclAllReduce((const void*)d_local_data, (void*)d_global_data, msg_count, ncclBfloat16, ncclSum, nccl_comm, NULL));
             #endif
-        
+            
             #ifdef USE_CUDA
             cudaDeviceSynchronize();
             #elif USE_ROCM
@@ -244,4 +259,3 @@ int main(int argc, char *argv[]) {
     MPI_Finalize();
     return EXIT_SUCCESS;
 }
-
