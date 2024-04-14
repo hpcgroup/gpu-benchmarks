@@ -95,8 +95,8 @@ int main(int argc, char *argv[]) {
     }
 
     int num_gpus = atoi(argv[1]);
-    int64_t min_msg_size = atoi(argv[2]);
-    int64_t max_msg_size = atoi(argv[3]);
+    int64_t min_msg_size = strtoll(argv[2], NULL, 10);
+    int64_t max_msg_size = strtoll(argv[3], NULL, 10);
     int iterations = atoi(argv[4]);
 
     if (num_gpus < 2 || min_msg_size <= 0 || max_msg_size <= 0 || min_msg_size > max_msg_size || iterations <= 0) {
