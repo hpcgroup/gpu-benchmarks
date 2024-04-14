@@ -1,3 +1,5 @@
+#define __HIP_PLATFORM_AMD__
+
 #include <unistd.h>
 #include <iostream>
 #include <stdlib.h>
@@ -5,8 +7,7 @@
 #include <hip/hip_runtime.h>
 #include <hip/hip_runtime_api.h>
 #include <hip/hip_fp16.h>
-#include <hipblas/hipblas.h>
-#include <rocblas.h>
+#include <rocblas/rocblas.h>
 #include "../fp16_conversion.h"
 
 using namespace std;
@@ -29,6 +30,8 @@ const char* rocblasGetErrorString(rocblas_status status)
 	case rocblas_status_invalid_value: return "rocblas_status_invalid_value";
 	case rocblas_status_continue: return "rocblas_status_continue";
 	case rocblas_status_check_numerics_fail: return "rocblas_status_check_numerics_fail";
+        case rocblas_status_excluded_from_build: return "rocblas_status_excluded_from_build";
+        case rocblas_status_arch_mismatch: return "rocblas_status_arch_mismatch";
     }
     return "unknown error";
 }
@@ -68,7 +71,7 @@ int main(int argc, char ** argv){
 
 
   int min_m_k_n = 1024;
-  int max_m_k_n = 16384*2;
+  int max_m_k_n = 16384*4;
   int repeats = 100;
   int verbose = 1;
 
