@@ -71,7 +71,9 @@ int main(int argc, char ** argv){
 
 
   int min_m_k_n = 1024;
-  int max_m_k_n = 16384*4;
+  int max_m_k_n = 16384*2;
+  // int min_m_k_n = 50000;
+  // int max_m_k_n = 50000;
   int repeats = 100;
   int verbose = 1;
 
@@ -105,12 +107,8 @@ int main(int argc, char ** argv){
     checkHip(hipMalloc(&d_B, max_m_k_n * max_m_k_n * sizeof(uint16_t)));
     checkHip(hipMalloc(&d_C, max_m_k_n * max_m_k_n * sizeof(uint16_t)));
     
-    // rocblas_gemm_ex requries D array too
+    // rocblas_gemm_ex requires D array too
     checkHip(hipMalloc(&d_D, max_m_k_n * max_m_k_n * sizeof(uint16_t)));
-
-    checkHip(hipMemcpy(d_A,h_A,max_m_k_n * max_m_k_n * sizeof(uint16_t),hipMemcpyHostToDevice));
-    checkHip(hipMemcpy(d_B,h_B,max_m_k_n * max_m_k_n * sizeof(uint16_t),hipMemcpyHostToDevice));
-    checkHip(hipMemcpy(d_C,h_C,max_m_k_n * max_m_k_n * sizeof(uint16_t),hipMemcpyHostToDevice));
 
     for (int i = 0; i < max_m_k_n * max_m_k_n; i++) {
         half temp_a = approx_float_to_half(h_A[i]);
