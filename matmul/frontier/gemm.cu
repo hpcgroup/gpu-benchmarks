@@ -59,7 +59,7 @@ rocblas_status checkRocblas(rocblas_status result)
 }
 
 // Fill the array A(nr_rows_A, nr_cols_A) with random numbers on CPU
-void CPU_fill_rand(float *A, unsigned long nr_rows_A, unsigned long nr_cols_A) {
+void CPU_fill_rand(float *A, unsigned long long nr_rows_A, unsigned long long nr_cols_A) {
     int a=1;
 
     for (unsigned long long i = 0; i < nr_rows_A * nr_cols_A; i++){

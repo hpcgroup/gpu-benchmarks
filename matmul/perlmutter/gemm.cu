@@ -49,10 +49,10 @@ cublasStatus_t checkCublas(cublasStatus_t result)
 }
 
 // Fill the array A(nr_rows_A, nr_cols_A) with random numbers on CPU
-void CPU_fill_rand(float *A, int nr_rows_A, int nr_cols_A) {
+void CPU_fill_rand(float *A, unsigned long long nr_rows_A, unsigned long long nr_cols_A) {
 	int a=1;
 
-    for(int i = 0; i < nr_rows_A * nr_cols_A; i++){
+    for(unsigned long long i = 0; i < nr_rows_A * nr_cols_A; i++){
           A[i] = (float)rand()/(float)(RAND_MAX/a);
 	}
 }
@@ -60,8 +60,8 @@ void CPU_fill_rand(float *A, int nr_rows_A, int nr_cols_A) {
 int main(int argc, char ** argv){
 
 
-  int min_m_k_n = 1024;
-  int max_m_k_n = 16384*2;
+  unsigned long long min_m_k_n = 1024;
+  unsigned long long max_m_k_n = 16384*2;
   int repeats = 100;
   int verbose = 1;
 
@@ -95,7 +95,7 @@ int main(int argc, char ** argv){
   checkCuda(cudaMallocManaged(&d_B, max_m_k_n * max_m_k_n * sizeof(nv_bfloat16)));
   checkCuda(cudaMallocManaged(&d_C, max_m_k_n * max_m_k_n * sizeof(nv_bfloat16)));    
   
-  for (int i = 0; i < max_m_k_n * max_m_k_n; i++) {
+  for (unsigned long long i = 0; i < max_m_k_n * max_m_k_n; i++) {
     d_A[i] = __float2bfloat16(h_A[i]);
     d_B[i] = __float2bfloat16(h_B[i]);
     d_C[i] = __float2bfloat16(h_C[i]);
