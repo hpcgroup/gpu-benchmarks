@@ -59,21 +59,18 @@ rocblas_status checkRocblas(rocblas_status result)
 }
 
 // Fill the array A(nr_rows_A, nr_cols_A) with random numbers on CPU
-void CPU_fill_rand(float *A, int nr_rows_A, int nr_cols_A) {
-	int a=1;
+void CPU_fill_rand(float *A, unsigned long nr_rows_A, unsigned long nr_cols_A) {
+    int a=1;
 
-    for(int i = 0; i < nr_rows_A * nr_cols_A; i++){
+    for (unsigned long long i = 0; i < nr_rows_A * nr_cols_A; i++){
         A[i] = (float)rand()/(float)(RAND_MAX/a);		
     }
 }
 
 int main(int argc, char ** argv){
 
-
-  int min_m_k_n = 1024;
-  int max_m_k_n = 16384*2;
-  // int min_m_k_n = 50000;
-  // int max_m_k_n = 50000;
+  unsigned long long min_m_k_n = 1024;
+  unsigned long long max_m_k_n = 16384*4;
   int repeats = 100;
   int verbose = 1;
 
@@ -110,7 +107,7 @@ int main(int argc, char ** argv){
     // rocblas_gemm_ex requires D array too
     checkHip(hipMalloc(&d_D, max_m_k_n * max_m_k_n * sizeof(uint16_t)));
 
-    for (int i = 0; i < max_m_k_n * max_m_k_n; i++) {
+    for (unsigned long long i = 0; i < max_m_k_n * max_m_k_n; i++) {
         half temp_a = approx_float_to_half(h_A[i]);
         half temp_b = approx_float_to_half(h_B[i]);
         half temp_c = approx_float_to_half(h_C[i]);
