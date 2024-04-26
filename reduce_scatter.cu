@@ -30,9 +30,9 @@
 #define NUM_WARMUP_ITERATIONS		5
 
 #define MPI_CHECK(cmd) do {                         \
-  int64_t e = cmd;                                      \
+  int64_t e = cmd;                                  \
   if( e != MPI_SUCCESS ) {                          \
-    printf("Failed: MPI error %s:%d '%ld'\n",        \
+    printf("Failed: MPI error %s:%d '%ld'\n",       \
         __FILE__,__LINE__, e);                      \
     exit(EXIT_FAILURE);                             \
   }                                                 \
@@ -47,11 +47,11 @@
   }                                                 \
 } while(0)
 
-#define HIP_CHECK(cmd) do {                        \
-  hipError_t e = cmd;                              \
-  if(e != hipSuccess) {                            \
-    printf("HIP error  %s:%d: %s\n",               \
-        __FILE__, __LINE__, hipGetErrorString(e)); \
+#define HIP_CHECK(cmd) do {                         \
+  hipError_t e = cmd;                               \
+  if(e != hipSuccess) {                             \
+    printf("HIP error  %s:%d: %s\n",                \
+        __FILE__, __LINE__, hipGetErrorString(e));  \
     exit(EXIT_FAILURE);                             \
   }                                                 \
 } while(0)
@@ -189,7 +189,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < num_pes; i++) 
         recvcounts[i] = portion;
 
-    // Perform MPI_Iallgather, NCCL allgather, or RCCL allgather
+    // Perform MPI_Ireduce_scatter, NCCL reduce_scatter, or RCCL reduce_scatter 
     double total_time, start_time;
     MPI_Request request;
     MPI_Status status;
@@ -221,9 +221,6 @@ int main(int argc, char *argv[]) {
             hipDeviceSynchronize();
             #endif
         }
-
-	if(msg_size >= 8388608)
-	    iterations = 20;
 
         MPI_Barrier(MPI_COMM_WORLD);
         start_time = MPI_Wtime();
