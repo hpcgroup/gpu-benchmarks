@@ -1,4 +1,4 @@
-/* \file allgather.cu
+/* \file allreduce.cu
  * Copyright 2024 Parallel Software and Systems Group, University of Maryland.
  * See the top-level LICENSE file for details.
  * 
@@ -8,10 +8,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
+#include <stdint.h>
+
 #ifdef USE_CUDA
   #include <cuda_bf16.h>
   #define bfloat16 nv_bfloat16
 #elif USE_ROCM
+  #define __HIP_PLATFORM_AMD__
   #include <hip/hip_bfloat16.h>
   #include <hip/hip_runtime.h>
   #include <hip/hip_runtime_api.h>
@@ -27,9 +30,9 @@
 #define NUM_WARMUP_ITERATIONS		5
 
 #define MPI_CHECK(cmd) do {                         \
-  int e = cmd;                                      \
+  int64_t e = cmd;                                  \
   if( e != MPI_SUCCESS ) {                          \
-    printf("Failed: MPI error %s:%d '%d'\n",        \
+    printf("Failed: MPI error %s:%d '%ld'\n",       \
         __FILE__,__LINE__, e);                      \
     exit(EXIT_FAILURE);                             \
   }                                                 \
@@ -44,11 +47,11 @@
   }                                                 \
 } while(0)
 
-#define HIP_CHECK(cmd) do {                        \
-  hipError_t e = cmd;                              \
-  if(e != hipSuccess) {                            \
-    printf("HIP error  %s:%d: %s\n",               \
-        __FILE__, __LINE__, hipGetErrorString(e)); \
+#define HIP_CHECK(cmd) do {                         \
+  hipError_t e = cmd;                               \
+  if(e != hipSuccess) {                             \
+    printf("HIP error  %s:%d: %s\n",                \
+        __FILE__, __LINE__, hipGetErrorString(e));  \
     exit(EXIT_FAILURE);                             \
   }                                                 \
 } while(0)
@@ -63,13 +66,24 @@
   }                                                 \
 } while(0)
 
-void initializeData(bfloat16 *data, int size) {
-    for (int i = 0; i < (size / sizeof(bfloat16)); ++i) {
+void initializeData(bfloat16 *data, int64_t size) {
+    for (int64_t i = 0; i < (size / sizeof(bfloat16)); ++i) {
         #ifdef USE_CUDA
         data[i] = __float2bfloat16((float)i);
         #elif USE_ROCM
         // ROCm doesn't have a float2bfloat16 method
-        data[i] = (bfloat16) ((float) i);
+        data[i] = (bfloat16) ((float) i); #endif
+    }
+}
+
+void custom_bf16_sum(void *invec, void *inoutvec, int *len, MPI_Datatype *datatype) {
+    bfloat16* in = (bfloat16*) invec;
+    bfloat16* inout = (bfloat16*) inoutvec;
+    for (int i = 0; i < *len; i++) {
+        #ifdef USE_CUDA
+        inout[i] = __hadd(in[i], inout[i]);
+        #elif USE_ROCM
+        inout[i] = in[i] + inout[i];
         #endif
     }
 }
@@ -81,8 +95,8 @@ int main(int argc, char *argv[]) {
     }
 
     int num_gpus = atoi(argv[1]);
-    int min_msg_size = atoi(argv[2]);
-    int max_msg_size = atoi(argv[3]);
+    int64_t min_msg_size = strtoll(argv[2], NULL, 10);
+    int64_t max_msg_size = strtoll(argv[3], NULL, 10);
     int iterations = atoi(argv[4]);
 
     if (num_gpus < 2 || min_msg_size <= 0 || max_msg_size <= 0 || min_msg_size > max_msg_size || iterations <= 0) {
@@ -113,8 +127,13 @@ int main(int argc, char *argv[]) {
     hipSetDevice((my_rank % num_gpus_per_node));
     #endif
 
-    int local_data_size = max_msg_size; // Size of local data
-    int global_data_size = local_data_size * num_gpus; // Size of global data
+    int64_t local_data_size = max_msg_size; // Size of local data
+    int64_t global_data_size = local_data_size; // Size of global data 
+    
+    if (my_rank == 0) {
+        fprintf(stdout, "Local data size: %ld\n", (local_data_size / 1024) / 1024);
+        fprintf(stdout, "Global data size: %ld\n", (global_data_size / 1024) / 1024);
+    }
 
     bfloat16 *local_data = (bfloat16*)malloc(local_data_size);
     bfloat16 *global_data = (bfloat16*)malloc(global_data_size);
@@ -122,7 +141,6 @@ int main(int argc, char *argv[]) {
     // Initialize local data
     initializeData(local_data, local_data_size);
 
-    // Allocate memory on GPU
     bfloat16 *d_local_data, *d_global_data;
     #ifdef USE_CUDA
     CUDA_CHECK(cudaMalloc(&d_local_data, local_data_size));
@@ -142,6 +160,10 @@ int main(int argc, char *argv[]) {
     MPI_Type_contiguous(2, MPI_BYTE, &mpi_type_bfloat16);
     MPI_Type_commit(&mpi_type_bfloat16);
 
+    // define custom reduce operation for nv_bfloat16 types
+    MPI_Op CUSTOM_SUM;
+    MPI_Op_create(&custom_bf16_sum, 1, &CUSTOM_SUM);
+
     #elif defined(USE_NCCL) || defined(USE_RCCL)
     ncclUniqueId nccl_comm_id;
     ncclComm_t nccl_comm;
@@ -159,7 +181,7 @@ int main(int argc, char *argv[]) {
     NCCL_CHECK(ncclCommInitRank(&nccl_comm, num_pes, nccl_comm_id, my_rank));
     #endif
 
-    // Perform MPI_Iallgather, NCCL allgather, or RCCL allgather
+    // Perform MPI_Iallreduce, NCCL allreduce, or RCCL allreduce 
     double total_time, start_time;
     MPI_Request request;
     MPI_Status status;
@@ -167,24 +189,24 @@ int main(int argc, char *argv[]) {
     // Print benchmark results
     if (my_rank == 0) {
         printf("Number of GPUs: %d\n", num_gpus);
-        printf("Message size range: %d - %d\n", min_msg_size, max_msg_size);
+        printf("Message size range: %ld - %ld\n", min_msg_size, max_msg_size);
         printf("Number of iterations: %d\n", iterations);
     }
     fflush(NULL);
 
-    for (int msg_size = min_msg_size; msg_size <= max_msg_size; msg_size *= 2) {
+    for (int64_t msg_size = min_msg_size; msg_size <= max_msg_size; msg_size *= 2) {
 	msg_count = msg_size / sizeof(bfloat16);
 	// warmup iterations
 	for (int i = 0; i < NUM_WARMUP_ITERATIONS; ++i) {
             #ifdef USE_MPI
-	    MPI_CHECK(MPI_Iallgather(d_local_data, msg_count, mpi_type_bfloat16,
-		d_global_data, msg_count, mpi_type_bfloat16, MPI_COMM_WORLD, &request));
-                
+            MPI_CHECK(MPI_Iallreduce(d_local_data, d_global_data, msg_count, mpi_type_bfloat16,
+                CUSTOM_SUM, MPI_COMM_WORLD, &request));
+
             MPI_CHECK(MPI_Wait(&request, &status));
             #elif defined(USE_NCCL) || defined(USE_RCCL)
-            NCCL_CHECK(ncclAllGather((const void*)d_local_data, (void*)d_global_data, msg_count, ncclBfloat16, nccl_comm, NULL));
+            NCCL_CHECK(ncclAllReduce((const void*)d_local_data, (void*)d_global_data, msg_count, ncclBfloat16, ncclSum, nccl_comm, NULL));
             #endif
-        
+            
             #ifdef USE_CUDA
             cudaDeviceSynchronize();
             #elif USE_ROCM
@@ -192,21 +214,18 @@ int main(int argc, char *argv[]) {
             #endif
         }
 
-	if(msg_size >= 8388608)
-	    iterations = 20;
-
         MPI_Barrier(MPI_COMM_WORLD);
         start_time = MPI_Wtime();
 	for (int i = 0; i < iterations; ++i) {
             #ifdef USE_MPI
-	    MPI_CHECK(MPI_Iallgather(d_local_data, msg_count, mpi_type_bfloat16,
-		d_global_data, msg_count, mpi_type_bfloat16, MPI_COMM_WORLD, &request));
-                
+            MPI_CHECK(MPI_Iallreduce(d_local_data, d_global_data, msg_count, mpi_type_bfloat16,
+                CUSTOM_SUM, MPI_COMM_WORLD, &request));
+
             MPI_CHECK(MPI_Wait(&request, &status));
             #elif defined(USE_NCCL) || defined(USE_RCCL)
-            NCCL_CHECK(ncclAllGather((const void*)d_local_data, (void*)d_global_data, msg_count, ncclBfloat16, nccl_comm, NULL));
+            NCCL_CHECK(ncclAllReduce((const void*)d_local_data, (void*)d_global_data, msg_count, ncclBfloat16, ncclSum, nccl_comm, NULL));
             #endif
-        
+            
             #ifdef USE_CUDA
             cudaDeviceSynchronize();
             #elif USE_ROCM
@@ -216,7 +235,7 @@ int main(int argc, char *argv[]) {
         MPI_Barrier(MPI_COMM_WORLD);
         total_time = MPI_Wtime() - start_time;
 	if (my_rank == 0)
-	    printf("%d %.6f seconds\n", msg_size, (total_time / iterations));
+	    printf("%ld %.6f seconds\n", msg_size, (total_time / iterations));
     }
 
     // Cleanup
