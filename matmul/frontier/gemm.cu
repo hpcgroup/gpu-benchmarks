@@ -69,8 +69,8 @@ void CPU_fill_rand(float *A, unsigned long long nr_rows_A, unsigned long long nr
 
 int main(int argc, char ** argv){
 
-  unsigned long long min_m_k_n = 1024;
-  unsigned long long max_m_k_n = 16384*4;
+  unsigned long long min_m_k_n = 16384*2;
+  unsigned long long max_m_k_n = 16384*2;
   int repeats = 100;
   int verbose = 1;
 
