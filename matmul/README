@@ -1,0 +1,11 @@
+(Perlmutter) Before compiling do this:
+module load PrgEnv-cray cudatoolkit craype-accel-nvidia80
+export CRAY_ACCEL_TARGET=nvidia80
+
+(Perlmutter) Before running do this:
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/nvidia/hpc_sdk/Linux_x86_64/22.7/math_libs/11.7/lib64
+
+(Frontier) Before compiling do this:
+module load PrgEnv-cray amd-mixed/6.0 craype-accel-amd-gfx90a
+module load cpe/23.05
+export LD_LIBRARY_PATH="${CRAY_LD_LIBRARY_PATH}:${LD_LIBRARY_PATH}"
