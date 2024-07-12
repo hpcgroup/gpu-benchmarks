@@ -1,0 +1,21 @@
+slurmstepd: error: execve(): /pscratch/sd/a/adityat/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: No such file or directory
+slurmstepd: error: execve(): /pscratch/sd/a/adityat/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: No such file or directory
+slurmstepd: error: execve(): /pscratch/sd/a/adityat/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: No such file or directory
+slurmstepd: error: execve(): /pscratch/sd/a/adityat/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: No such file or directory
+slurmstepd: error: execve(): /pscratch/sd/a/adityat/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: No such file or directory
+slurmstepd: error: execve(): /pscratch/sd/a/adityat/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: No such file or directory
+slurmstepd: error: execve(): /pscratch/sd/a/adityat/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: No such file or directory
+slurmstepd: error: execve(): /pscratch/sd/a/adityat/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: No such file or directory
+slurmstepd: error: execve(): /pscratch/sd/a/adityat/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: No such file or directory
+slurmstepd: error: execve(): /pscratch/sd/a/adityat/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: No such file or directory
+slurmstepd: error: execve(): /pscratch/sd/a/adityat/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: No such file or directory
+slurmstepd: error: execve(): /pscratch/sd/a/adityat/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: No such file or directory
+slurmstepd: error: execve(): /pscratch/sd/a/adityat/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: No such file or directory
+slurmstepd: error: execve(): /pscratch/sd/a/adityat/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: No such file or directory
+slurmstepd: error: execve(): /pscratch/sd/a/adityat/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: No such file or directory
+slurmstepd: error: execve(): /pscratch/sd/a/adityat/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: No such file or directory
+srun: error: nid002072: tasks 8-11: Exited with exit code 2
+srun: Terminating StepId=27970493.0
+srun: error: nid002073: tasks 12-15: Exited with exit code 2
+srun: error: nid001572: tasks 4-7: Exited with exit code 2
+srun: error: nid001569: tasks 0-3: Exited with exit code 2
