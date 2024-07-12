@@ -1,9 +1,0 @@
-Before compiling do these:
-
-module load PrgEnv-cray cudatoolkit craype-accel-nvidia80
-export CRAY_ACCEL_TARGET=nvidia80
-
-When running do these:
-
-module load cudatoolkit
-export MPICH_GPU_SUPPORT_ENABLED=1

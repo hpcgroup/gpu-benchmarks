@@ -3,16 +3,28 @@
 # 
 # SPDX-License-Identifier: MIT
 
-CC	= cc
-INC	= -I/global/common/software/nersc9/nccl/2.19.4/include
-CFLAGS	= -std=c++11 -O2 -target-accel=nvidia80 --cuda-gpu-arch=sm_80 -DUSE_CUDA -DUSE_NCCL
-LDFLAGS	= -L/global/common/software/nersc9/nccl/2.19.4/lib -lnccl
+CC = cc
 
+# perlmutter flags
+# INC = -I/global/common/software/nersc9/nccl/2.19.4/include
+# CFLAGS = -std=c++11 -O2 -target-accel=nvidia80 --cuda-gpu-arch=sm_80 -DUSE_CUDA -DUSE_NCCL
+# LDFLAGS = -L/global/common/software/nersc9/nccl/2.19.4/lib -lnccl
 
-all: allgather.x
+# frontier flags
+# INC = -I${ROCM_PATH}/include
+# CFLAGS = -std=c++11 -O2 -D__HIP_ROCclr__ -D__HIP_ARCH_GFX90A__=1 --rocm-path=${ROCM_PATH} --offload-arch=gfx90a -x hip -DUSE_ROCM -DUSE_RCCL
+# LDFLAGS = -L${ROCM_PATH}/lib -lamdhip64 -lrccl
 
-allgather.x: allgather.cu 
+all: allgather.x allreduce.x reduce_scatter.x
+
+allgather.x: allgather.cu
 	${CC} ${CFLAGS} ${INC} ${LDFLAGS} -o allgather.x allgather.cu
 
+allreduce.x: allreduce.cu
+	${CC} ${CFLAGS} ${INC} ${LDFLAGS} -o allreduce.x allreduce.cu
+
+reduce_scatter.x: reduce_scatter.cu
+	${CC} ${CFLAGS} ${INC} ${LDFLAGS} -o reduce_scatter.x reduce_scatter.cu
+
 clean: 
-	rm -f allgather.x 
+	rm -f allgather.x allreduce.x reduce_scatter.x
