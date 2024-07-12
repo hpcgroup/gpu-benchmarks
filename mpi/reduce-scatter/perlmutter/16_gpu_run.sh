@@ -29,8 +29,8 @@ export FI_CXI_OFLOW_BUF_COUNT=1
 MIN_MSG_SIZE=$((1048576 * 32)) # 1048576 = 1024 * 1024
 MAX_MSG_SIZE=$((1048576 * 2048))
 
-SCRIPT="/global/homes/a/adityat/gpu-benchmarks/mpi/reduce-scatter/reduce_scatter.x $GPUS $MIN_MSG_SIZE $MAX_MSG_SIZE 10"
-run_cmd="srun -C gpu -N $NNODES -n $GPUS -c 32 --cpu-bind=cores --gpus-per-node=4 $SCRIPT >& /global/homes/a/adityat/gpu-benchmarks/mpi/reduce-scatter/perlmutter/benchmarks/16_gpu.txt"
+SCRIPT="$SCRATCH/gpu-benchmarks/mpi/reduce-scatter/reduce_scatter.x $GPUS $MIN_MSG_SIZE $MAX_MSG_SIZE 10"
+run_cmd="srun -C gpu -N $NNODES -n $GPUS -c 32 --cpu-bind=cores --gpus-per-node=4 $SCRIPT >& $SCRATCH/gpu-benchmarks/mpi/reduce-scatter/perlmutter/benchmarks/16_gpu.txt"
 
 echo $run_cmd
 eval $run_cmd

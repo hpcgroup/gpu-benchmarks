@@ -1,0 +1,13 @@
+Local data size: 2048
+Global data size: 2048
+Number of GPUs: 8
+Message size range: 16777216 - 2147483648
+Number of iterations: 10
+16777216 0.000507 seconds
+33554432 0.000855 seconds
+67108864 0.001697 seconds
+134217728 0.003146 seconds
+268435456 0.006394 seconds
+536870912 0.012162 seconds
+1073741824 0.024174 seconds
+2147483648 0.047715 seconds
