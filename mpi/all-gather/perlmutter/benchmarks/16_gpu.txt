@@ -1,0 +1,21 @@
+/pscratch/sd/a/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: error while loading shared libraries: libnccl.so.2: cannot open shared object file: No such file or directory
+/pscratch/sd/a/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: error while loading shared libraries: libnccl.so.2: cannot open shared object file: No such file or directory
+/pscratch/sd/a/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: error while loading shared libraries: libnccl.so.2: cannot open shared object file: No such file or directory
+/pscratch/sd/a/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: error while loading shared libraries: libnccl.so.2: cannot open shared object file: No such file or directory
+/pscratch/sd/a/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: error while loading shared libraries: libnccl.so.2: cannot open shared object file: No such file or directory
+/pscratch/sd/a/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: error while loading shared libraries: libnccl.so.2: cannot open shared object file: No such file or directory
+/pscratch/sd/a/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: error while loading shared libraries: libnccl.so.2: cannot open shared object file: No such file or directory
+/pscratch/sd/a/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: error while loading shared libraries: libnccl.so.2: cannot open shared object file: No such file or directory
+/pscratch/sd/a/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: error while loading shared libraries: libnccl.so.2: cannot open shared object file: No such file or directory
+/pscratch/sd/a/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: error while loading shared libraries: libnccl.so.2: cannot open shared object file: No such file or directory
+/pscratch/sd/a/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: error while loading shared libraries: libnccl.so.2: cannot open shared object file: No such file or directory
+/pscratch/sd/a/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: error while loading shared libraries: libnccl.so.2: cannot open shared object file: No such file or directory
+srun: error: nid008252: tasks 0-3: Exited with exit code 127
+srun: Terminating StepId=27999986.0
+/pscratch/sd/a/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: error while loading shared libraries: libnccl.so.2: cannot open shared object file: No such file or directory
+/pscratch/sd/a/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: error while loading shared libraries: libnccl.so.2: cannot open shared object file: No such file or directory
+/pscratch/sd/a/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: error while loading shared libraries: libnccl.so.2: cannot open shared object file: No such file or directory
+/pscratch/sd/a/adityat/gpu-benchmarks/mpi/all-gather/allgather.x: error while loading shared libraries: libnccl.so.2: cannot open shared object file: No such file or directory
+srun: error: nid008649: tasks 4-7: Exited with exit code 127
+srun: error: nid008652: tasks 8-11: Exited with exit code 127
+srun: error: nid008653: tasks 12-15: Exited with exit code 127
