@@ -29,7 +29,7 @@ export FI_CXI_OFLOW_BUF_COUNT=1
 MIN_MSG_SIZE=$((1048576 * 2)) # 1048576 = 1024 * 1024
 MAX_MSG_SIZE=$((1048576 * 128))
 
-SCRIPT="$SCRATCH/adityat/gpu-benchmarks/mpi/all-gather/allgather.x $GPUS $MIN_MSG_SIZE $MAX_MSG_SIZE 10"
+SCRIPT="$SCRATCH/gpu-benchmarks/mpi/all-gather/allgather.x $GPUS $MIN_MSG_SIZE $MAX_MSG_SIZE 10"
 run_cmd="srun -C gpu -N $NNODES -n $GPUS -c 32 --cpu-bind=cores --gpus-per-node=4 $SCRIPT >& $SCRATCH/gpu-benchmarks/mpi/all-gather/perlmutter/benchmarks/16_gpu.txt"
 
 echo $run_cmd
