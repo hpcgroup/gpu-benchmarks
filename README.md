@@ -2,7 +2,7 @@ Before compiling do these:
 
 ### Perlmutter
 ```sh
-module load PrgEnv-cray cudatoolkit craype-accel-nvidia80 nccl/2.19.4
+module load PrgEnv-cray cudatoolkit craype-accel-nvidia80 nccl
 export CRAY_ACCEL_TARGET=nvidia80
 export MPICH_GPU_SUPPORT_ENABLED=1
 ```
