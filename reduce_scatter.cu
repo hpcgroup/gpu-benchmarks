@@ -182,12 +182,9 @@ int main(int argc, char *argv[]) {
     NCCL_CHECK(ncclCommInitRank(&nccl_comm, num_pes, nccl_comm_id, my_rank));
     #endif
 
-    // init recvcounts to send an equal portion of data from the reduce operation
-    int num_elements = local_data_size / sizeof(bfloat16);
-    int portion = num_elements / num_pes;
+    // init recvcounts, which stores the portion of data to send to each process after calling reduce
     int *recvcounts = (int*) malloc(sizeof(int) * num_pes);
-    for (int i = 0; i < num_pes; i++) 
-        recvcounts[i] = portion;
+    int portion;
 
     // Perform MPI_Ireduce_scatter, NCCL reduce_scatter, or RCCL reduce_scatter 
     double total_time, start_time;
@@ -204,6 +201,11 @@ int main(int argc, char *argv[]) {
 
     for (int64_t msg_size = min_msg_size; msg_size <= max_msg_size; msg_size *= 2) {
 	msg_count = msg_size / sizeof(bfloat16);
+
+    portion = msg_count / num_pes;
+    for (int i = 0; i < num_pes; i++) 
+        recvcounts[i] = portion;
+
 	// warmup iterations
 	for (int i = 0; i < NUM_WARMUP_ITERATIONS; ++i) {
             #ifdef USE_MPI
