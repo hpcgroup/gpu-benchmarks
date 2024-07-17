@@ -30,8 +30,8 @@ const char* rocblasGetErrorString(rocblas_status status)
 	case rocblas_status_invalid_value: return "rocblas_status_invalid_value";
 	case rocblas_status_continue: return "rocblas_status_continue";
 	case rocblas_status_check_numerics_fail: return "rocblas_status_check_numerics_fail";
-        case rocblas_status_excluded_from_build: return "rocblas_status_excluded_from_build";
-        case rocblas_status_arch_mismatch: return "rocblas_status_arch_mismatch";
+        // case rocblas_status_excluded_from_build: return "rocblas_status_excluded_from_build";
+        // case rocblas_status_arch_mismatch: return "rocblas_status_arch_mismatch";
     }
     return "unknown error";
 }
@@ -70,9 +70,9 @@ void CPU_fill_rand(float *A, unsigned long long nr_rows_A, unsigned long long nr
 int main(int argc, char ** argv) {
 
   int m = atoi(argv[1]);
-  int k_mult = atoi(argv[2]);
-  int n_mult = atoi(argv[3]);
-  int h = atoi(argv[4]);
+  float k_mult = atof(argv[2]);
+  float n_mult = atof(argv[3]);
+  float h = atof(argv[4]);
 
   int k = k_mult * h;
   int n = n_mult * h;
@@ -137,11 +137,11 @@ int main(int argc, char ** argv) {
 	          hipEventRecord(start, 0);
 
                   lda = k;
-                  ldb = n;
+                  ldb = k;
                   ldc = m;
                   ldd = m;
 
-                  stat = rocblas_gemm_ex(handle, rocblas_operation_transpose, rocblas_operation_transpose, m, n, k, alpha, d_A, rocblas_datatype_bf16_r, lda, d_B, rocblas_datatype_bf16_r, ldb, beta, d_C, rocblas_datatype_bf16_r, ldc, d_D, rocblas_datatype_bf16_r, ldd, rocblas_datatype_f32_r, rocblas_gemm_algo_standard, 0, 0);
+                  stat = rocblas_gemm_ex(handle, rocblas_operation_transpose, rocblas_operation_none, m, n, k, alpha, d_A, rocblas_datatype_bf16_r, lda, d_B, rocblas_datatype_bf16_r, ldb, beta, d_C, rocblas_datatype_bf16_r, ldc, d_D, rocblas_datatype_bf16_r, ldd, rocblas_datatype_f32_r, rocblas_gemm_algo_standard, 0, 0);
 
                   hipEventRecord(stop,0);
                   hipEventSynchronize(stop);
