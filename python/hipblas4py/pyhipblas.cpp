@@ -78,26 +78,32 @@ void matmul_AB(const torch::Tensor& A, const torch::Tensor& B, const torch::Tens
 	TORCH_CHECK(C.dim() == 2, "Matrix C should be 2 dimensional");
 	
 	int lda, ldb, ldd, ldc, m, n, k;
-	m = B.sizes()[1];
-	k = B.sizes()[0];
-	n = A.sizes()[0];
+	m = A.sizes()[0];
+	k = A.sizes()[1];
+	n = B.sizes()[1];
+	lda = A.sizes()[0];
+	ldb = B.sizes()[0];
+	ldc = C.sizes()[0];
+	ldd = C.sizes()[0];
 
-
-	TORCH_CHECK(A.sizes()[1] == k, "Common dimension of A and B should be the same");
-	TORCH_CHECK(C.sizes()[0] == n, "First dimension of C is incorrect");
-	TORCH_CHECK(C.sizes()[1] == m, "First dimension of C is incorrect");
+	TORCH_CHECK(B.sizes()[0] == k, "Common dimension of A and B should be the same");
+	TORCH_CHECK(C.sizes()[0] == m, "First dimension of C is incorrect");
+	TORCH_CHECK(C.sizes()[1] == n, "First dimension of C is incorrect");
 	
 	rocblas_status stat;
-	double alpha = 1.0;
-	double beta = 0.0;
+
+	float alpha = 1.0;
+	float beta = 0.0;
+
 	stat = rocblas_gemm_ex(handle, rocblas_operation_none, rocblas_operation_none, 
 			m, n, k, &alpha, 
-			B.data_ptr<void>(), rocblas_datatype_bf16_r, lda, 
-			A.data_ptr<void>(), rocblas_datatype_bf16_r, ldb, &beta, 
-			C.data_ptr<void>(), rocblas_datatype_bf16_r, ldc, 
-			C.data_ptr<void>(), rocblas_datatype_bf16_r, ldd, 
+			A.data_ptr<at::BFloat16>(), rocblas_datatype_bf16_r, lda, 
+			B.data_ptr<at::BFloat16>(), rocblas_datatype_bf16_r, ldb, &beta, 
+			C.data_ptr<at::BFloat16>(), rocblas_datatype_bf16_r, ldc, 
+			C.data_ptr<at::BFloat16>(), rocblas_datatype_bf16_r, ldd, 
 			rocblas_datatype_f32_r, rocblas_gemm_algo_standard, 0, 0);
 
+        checkRocblas(stat);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
