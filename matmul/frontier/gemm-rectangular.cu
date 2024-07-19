@@ -130,18 +130,18 @@ int main(int argc, char ** argv) {
   hipEventCreate(&start);
   hipEventCreate(&stop);
 
-  int repeats = 100;
+  int repeats = 15;
 
 	      double sum = 0.0;
 	      for(int rep = 0; rep < repeats; rep++) {
 	          hipEventRecord(start, 0);
 
-                  lda = k;
+                  lda = m;
                   ldb = k;
                   ldc = m;
                   ldd = m;
 
-                  stat = rocblas_gemm_ex(handle, rocblas_operation_transpose, rocblas_operation_none, m, n, k, alpha, d_A, rocblas_datatype_bf16_r, lda, d_B, rocblas_datatype_bf16_r, ldb, beta, d_C, rocblas_datatype_bf16_r, ldc, d_D, rocblas_datatype_bf16_r, ldd, rocblas_datatype_f32_r, rocblas_gemm_algo_standard, 0, 0);
+                  stat = rocblas_gemm_ex(handle, rocblas_operation_none, rocblas_operation_none, m, n, k, alpha, d_A, rocblas_datatype_bf16_r, lda, d_B, rocblas_datatype_bf16_r, ldb, beta, d_C, rocblas_datatype_bf16_r, ldc, d_D, rocblas_datatype_bf16_r, ldd, rocblas_datatype_f32_r, rocblas_gemm_algo_standard, 0, 0);
 
                   hipEventRecord(stop,0);
                   hipEventSynchronize(stop);
@@ -154,12 +154,12 @@ int main(int argc, char ** argv) {
                   float elapsed;
                   hipEventElapsedTime(&elapsed, start, stop);
                   elapsed /= 1000.0f;
-                  if (rep >= 25) {
+                  if (rep >= 5) {
                       sum += elapsed;
                   }
               }
 
-              double percent_of_peak = ((((((2 * ((double) k)) - 1) * ((double) m) * ((double) n)) / 1000000000000.0) / (sum / 75)) / 191.5) * 100;
+              double percent_of_peak = ((((((2 * ((double) k)) - 1) * ((double) m) * ((double) n)) / 1000000000000.0) / (sum / 10)) / 191.5) * 100;
 
 	      cout << "m: " << m << " | k: " << k << " | n: " << n;  
 	      cout << " | average: " << sum/75 << " s "<< " | Percent of Peak: " << percent_of_peak << endl;

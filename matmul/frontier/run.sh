@@ -31,8 +31,8 @@ do
 done
 '
 
-srun -N 1 ./gemm-rectangular.x "2048" "1" "1.5" "12288" > "TN/2048_12288_18432.out"
-srun -N 1 ./gemm-rectangular.x "2048" "0.5" "1" "12288" > "TN/2048_6144_12288.out"
-srun -N 1 ./gemm-rectangular.x "2048" "1" "2" "12288" > "TN/2048_12288_24576.out"
-srun -N 1 ./gemm-rectangular.x "2048" "2" "1" "12288" > "TN/2048_24576_12288.out"
+# srun -N 1 ./gemm-rectangular.x "2048" "1" "1.5" "12288" > "TN/2048_12288_18432.out"
+# srun -N 1 ./gemm-rectangular.x "2048" "0.5" "1" "12288" > "TN/2048_6144_12288.out"
+# srun -N 1 ./gemm-rectangular.x "2048" "1" "2" "12288" > "TN/2048_12288_24576.out"
+srun -N 1 ./gemm-rectangular.x "2048" "2" "1" "12288"
 
