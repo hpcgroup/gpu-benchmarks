@@ -81,6 +81,9 @@ void matmul_AB(const torch::Tensor& A, const torch::Tensor& B, const torch::Tens
 	m = B.sizes()[1];
 	k = B.sizes()[0];
 	n = A.sizes()[0];
+	ldb = m;
+	lda = k;
+	ldc = m;	
 
 
 	TORCH_CHECK(A.sizes()[1] == k, "Common dimension of A and B should be the same");
@@ -88,15 +91,16 @@ void matmul_AB(const torch::Tensor& A, const torch::Tensor& B, const torch::Tens
 	TORCH_CHECK(C.sizes()[1] == m, "First dimension of C is incorrect");
 	
 	rocblas_status stat;
-	double alpha = 1.0;
-	double beta = 0.0;
+	float alpha = 1.0;
+	float beta = 0.0;
 	stat = rocblas_gemm_ex(handle, rocblas_operation_none, rocblas_operation_none, 
 			m, n, k, &alpha, 
-			B.data_ptr<void>(), rocblas_datatype_bf16_r, lda, 
-			A.data_ptr<void>(), rocblas_datatype_bf16_r, ldb, &beta, 
-			C.data_ptr<void>(), rocblas_datatype_bf16_r, ldc, 
-			C.data_ptr<void>(), rocblas_datatype_bf16_r, ldd, 
+			B.data_ptr<at::BFloat16>(), rocblas_datatype_bf16_r, ldb, 
+			A.data_ptr<at::BFloat16>(), rocblas_datatype_bf16_r, lda, &beta, 
+			C.data_ptr<at::BFloat16>(), rocblas_datatype_bf16_r, ldc, 
+			C.data_ptr<at::BFloat16>(), rocblas_datatype_bf16_r, ldc, 
 			rocblas_datatype_f32_r, rocblas_gemm_algo_standard, 0, 0);
+	checkRocblas(stat);
 
 }
 
