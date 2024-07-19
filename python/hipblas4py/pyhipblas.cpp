@@ -76,19 +76,23 @@ void matmul_AB(const torch::Tensor& A, const torch::Tensor& B, const torch::Tens
 	TORCH_CHECK(A.dim() == 2, "Matrix A should be 2 dimensional");	
 	TORCH_CHECK(B.dim() == 2, "Matrix B should be 2 dimensional");
 	TORCH_CHECK(C.dim() == 2, "Matrix C should be 2 dimensional");
-	
+
+	TORCH_CHECK(A.is_contiguous(), "Matrix A should be contiguous");	
+	TORCH_CHECK(B.is_contiguous(), "Matrix B should be contiguous");
+	TORCH_CHECK(C.is_contiguous(), "Matrix C should be contiguous");
+
 	int lda, ldb, ldd, ldc, m, n, k;
 	m = B.sizes()[1];
 	k = B.sizes()[0];
 	n = A.sizes()[0];
-	ldb = m;
-	lda = k;
-	ldc = m;	
+	ldb = B.sizes()[1];
+	lda = A.sizes()[1];
+	ldc = C.sizes()[1];	
 
 
 	TORCH_CHECK(A.sizes()[1] == k, "Common dimension of A and B should be the same");
 	TORCH_CHECK(C.sizes()[0] == n, "First dimension of C is incorrect");
-	TORCH_CHECK(C.sizes()[1] == m, "First dimension of C is incorrect");
+	TORCH_CHECK(C.sizes()[1] == m, "Second dimension of C is incorrect");
 	
 	rocblas_status stat;
 	float alpha = 1.0;
@@ -104,9 +108,93 @@ void matmul_AB(const torch::Tensor& A, const torch::Tensor& B, const torch::Tens
 
 }
 
+
+void matmul_ABT(const torch::Tensor& A, const torch::Tensor& B, const torch::Tensor& C)
+{
+	// actually need to compute B . AT in hipblas in TN format
+	TORCH_CHECK(A.dim() == 2, "Matrix A should be 2 dimensional");	
+	TORCH_CHECK(B.dim() == 2, "Matrix B should be 2 dimensional");
+	TORCH_CHECK(C.dim() == 2, "Matrix C should be 2 dimensional");
+
+	TORCH_CHECK(A.is_contiguous(), "Matrix A should be contiguous");	
+	TORCH_CHECK(B.is_contiguous(), "Matrix B should be contiguous");
+	TORCH_CHECK(C.is_contiguous(), "Matrix C should be contiguous");
+	
+	int lda, ldb, ldd, ldc, m, n, k;
+	m = B.sizes()[0];
+	k = B.sizes()[1];
+	n = A.sizes()[0];
+	
+	ldb = B.sizes()[1];
+	lda = A.sizes()[1];
+	ldc = C.sizes()[1];	
+
+
+	TORCH_CHECK(A.sizes()[1] == k, "Common dimension of A and B should be the same");
+	TORCH_CHECK(C.sizes()[0] == n, "First dimension of C is incorrect");
+	TORCH_CHECK(C.sizes()[1] == m, "Second dimension of C is incorrect");
+	
+	rocblas_status stat;
+	float alpha = 1.0;
+	float beta = 0.0;
+	stat = rocblas_gemm_ex(handle, rocblas_operation_transpose, rocblas_operation_none, 
+			m, n, k, &alpha, 
+			B.data_ptr<at::BFloat16>(), rocblas_datatype_bf16_r, ldb, 
+			A.data_ptr<at::BFloat16>(), rocblas_datatype_bf16_r, lda, &beta, 
+			C.data_ptr<at::BFloat16>(), rocblas_datatype_bf16_r, ldc, 
+			C.data_ptr<at::BFloat16>(), rocblas_datatype_bf16_r, ldc, 
+			rocblas_datatype_f32_r, rocblas_gemm_algo_standard, 0, 0);
+	checkRocblas(stat);
+
+}
+
+
+void matmul_ATB(const torch::Tensor& A, const torch::Tensor& B, const torch::Tensor& C)
+{
+	// actually need to compute BT . A in hipblas in NT format
+	TORCH_CHECK(A.dim() == 2, "Matrix A should be 2 dimensional");	
+	TORCH_CHECK(B.dim() == 2, "Matrix B should be 2 dimensional");
+	TORCH_CHECK(C.dim() == 2, "Matrix C should be 2 dimensional");
+
+	TORCH_CHECK(A.is_contiguous(), "Matrix A should be contiguous");	
+	TORCH_CHECK(B.is_contiguous(), "Matrix B should be contiguous");
+	TORCH_CHECK(C.is_contiguous(), "Matrix C should be contiguous");
+	
+	int lda, ldb, ldd, ldc, m, n, k;
+	m = B.sizes()[1];
+	k = B.sizes()[0];
+	n = A.sizes()[1];
+	
+	ldb = B.sizes()[1];
+	lda = A.sizes()[1];
+	ldc = C.sizes()[1];	
+
+
+	TORCH_CHECK(A.sizes()[0] == k, "Common dimension of A and B should be the same");
+	TORCH_CHECK(C.sizes()[0] == n, "First dimension of C is incorrect");
+	TORCH_CHECK(C.sizes()[1] == m, "Second dimension of C is incorrect");
+	
+	rocblas_status stat;
+	float alpha = 1.0;
+	float beta = 0.0;
+	stat = rocblas_gemm_ex(handle, rocblas_operation_none, rocblas_operation_transpose, 
+			m, n, k, &alpha, 
+			B.data_ptr<at::BFloat16>(), rocblas_datatype_bf16_r, ldb, 
+			A.data_ptr<at::BFloat16>(), rocblas_datatype_bf16_r, lda, &beta, 
+			C.data_ptr<at::BFloat16>(), rocblas_datatype_bf16_r, ldc, 
+			C.data_ptr<at::BFloat16>(), rocblas_datatype_bf16_r, ldc, 
+			rocblas_datatype_f32_r, rocblas_gemm_algo_standard, 0, 0);
+	checkRocblas(stat);
+
+}
+
+
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("print_tensor", print_tensor);
   m.def("init_handle", init_handle);
   m.def("matmul_AB", matmul_AB);
+  m.def("matmul_ABT", matmul_ABT);
+  m.def("matmul_ATB", matmul_ATB);
 }
 
