@@ -1,9 +1,22 @@
 ## hipblas4py : A python wrapper around hipblas/rocblas
 
-Just run
+### Correctness tests
+Install pytest first
 
 ```
-python test.py
+pip install pytest
 ```
 
-This will JIT compile the extension and run a sample matmul.
+
+Then run
+
+```
+python -m pytest test.py
+```
+
+This will JIT compile the extension, run a test suite of matmuls and compare the outputs with those of `torch.matmul`.
+
+
+### Benchmarking
+
+WIP
