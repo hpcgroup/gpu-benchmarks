@@ -1,0 +1,14 @@
+srun -l -N 1 -n 8 -c7 --ntasks-per-node=8 --gpus-per-node=8 /ccs/home/adityatomar/gpu-benchmarks/mpi/all-gather/allgather.x 8 2097152 268435456 10
+0: Local data size: 256
+0: Global data size: 2048
+0: Number of GPUs: 8
+0: Message size range: 2097152 - 268435456
+0: Number of iterations: 10
+0: 2097152 0.000505 seconds
+0: 4194304 0.000856 seconds
+0: 8388608 0.001645 seconds
+0: 16777216 0.003223 seconds
+0: 33554432 0.006379 seconds
+0: 67108864 0.012691 seconds
+0: 134217728 0.025316 seconds
+0: 268435456 0.053944 seconds

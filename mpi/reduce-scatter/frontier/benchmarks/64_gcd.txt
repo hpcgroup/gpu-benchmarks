@@ -1,0 +1,17 @@
+srun -l -N 8 -n 64 -c7 --ntasks-per-node=8 --gpus-per-node=8 /ccs/home/adityatomar/gpu-benchmarks/mpi/reduce-scatter/reduce_scatter.x 64 16777216 2147483648 10
+ 0: Local data size: 2048
+ 0: Global data size: 2048
+ 0: Number of GPUs: 64
+ 0: Message size range: 16777216 - 2147483648
+ 0: Number of iterations: 10
+ 0: 16777216 5.006610 seconds
+ 0: 33554432 4.998351 seconds
+ 0: 67108864 5.003749 seconds
+ 0: 134217728 5.066133 seconds
+ 0: 268435456 4.980950 seconds
+ 0: 536870912 4.982830 seconds
+ 0: 1073741824 5.023178 seconds
+ 0: 2147483648 4.988750 seconds
+ 0: 
+ 0: MPICH Slingshot Network Summary: 4 network timeouts
+ 0: 

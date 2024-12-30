@@ -1,0 +1,13 @@
+srun -l -N 1 -n 8 -c7 --ntasks-per-node=8 --gpus-per-node=8 /ccs/home/adityatomar/gpu-benchmarks/mpi/all-reduce/allreduce.x 8 16777216 1073741824 10
+0: Local data size: 1024
+0: Global data size: 1024
+0: Number of GPUs: 8
+0: Message size range: 16777216 - 1073741824
+0: Number of iterations: 10
+0: 16777216 0.049728 seconds
+0: 33554432 0.099497 seconds
+0: 67108864 0.202129 seconds
+0: 134217728 0.500335 seconds
+0: 268435456 1.560791 seconds
+0: 536870912 3.265382 seconds
+0: 1073741824 6.500534 seconds
