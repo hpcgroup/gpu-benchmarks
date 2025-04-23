@@ -97,6 +97,7 @@ int main(int argc, char *argv[]) {
     int num_gpus_per_node;
     int msg_count;
 
+    hipInit(0);
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
@@ -238,7 +239,7 @@ int main(int argc, char *argv[]) {
     HIP_CHECK(hipFree(d_global_data));
     #endif
 
-    #ifdef defined(USE_NCCL) || defined(USE_RCCL)
+    #if defined(USE_NCCL) || defined(USE_RCCL)
     ncclCommDestroy(nccl_comm);
     #endif
 
