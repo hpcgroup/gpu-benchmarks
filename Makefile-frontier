@@ -1,0 +1,30 @@
+# Copyright 2024 Parallel Software and Systems Group, University of Maryland.
+# See the top-level LICENSE file for details.
+# 
+# SPDX-License-Identifier: MIT
+
+CC = hipcc
+
+# frontier flags
+INC = -I${ROCM_PATH}/include -I${MPICH_DIR}/include
+CFLAGS_MPI = -std=c++11 -O2 -D__HIP_ROCclr__ -D__HIP_ARCH_GFX90A__=1 -D__HIP_PLATFORM_AMD__ --rocm-path=${ROCM_PATH} --offload-arch=gfx90a -x hip -DUSE_ROCM -DUSE_MPI
+CFLAGS_RCCL = -std=c++11 -O2 -D__HIP_ROCclr__ -D__HIP_ARCH_GFX90A__=1 -D__HIP_PLATFORM_AMD__ --rocm-path=${ROCM_PATH} --offload-arch=gfx90a -x hip -DUSE_ROCM -DUSE_RCCL
+LDFLAGS = -L${ROCM_PATH}/lib -lamdhip64 -lrccl \
+		-L${MPICH_DIR}/lib -lmpi ${CRAY_XPMEM_POST_LINK_OPTS} -lxpmem \
+		${PE_MPICH_GTL_DIR_amd_gfx90a} ${PE_MPICH_GTL_LIBS_amd_gfx90a}
+
+
+all: allgather_rccl_rocm-${CRAY_ROCM_VERSION}.x allgather_mpi_rocm-${CRAY_ROCM_VERSION}.x allreduce_rccl_rocm-${CRAY_ROCM_VERSION}.x allreduce_mpi_rocm-${CRAY_ROCM_VERSION}.x
+
+allgather_rccl_rocm-${CRAY_ROCM_VERSION}.x: allgather.cu
+	${CC} ${CFLAGS_RCCL} ${INC} ${LDFLAGS} -o allgather_rccl_rocm-${CRAY_ROCM_VERSION}.x allgather.cu
+allgather_mpi_rocm-${CRAY_ROCM_VERSION}.x: allgather.cu
+	${CC} ${CFLAGS_MPI} ${INC} ${LDFLAGS} -o allgather_mpi_rocm-${CRAY_ROCM_VERSION}.x allgather.cu
+
+allreduce_rccl_rocm-${CRAY_ROCM_VERSION}.x: allreduce.cu
+	${CC} ${CFLAGS_RCCL} ${INC} ${LDFLAGS} -o allreduce_rccl_rocm-${CRAY_ROCM_VERSION}.x allreduce.cu
+allreduce_mpi_rocm-${CRAY_ROCM_VERSION}.x: allreduce.cu
+	${CC} ${CFLAGS_MPI} ${INC} ${LDFLAGS} -o allreduce_mpi_rocm-${CRAY_ROCM_VERSION}.x allreduce.cu
+
+clean: 
+	rm -f *.x

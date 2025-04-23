@@ -5,7 +5,10 @@
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #include "../fp16_conversion.h"
+<<<<<<< Updated upstream
 #include <mpi.h>
+=======
+>>>>>>> Stashed changes
 
 using namespace std;
 
@@ -60,6 +63,7 @@ void CPU_fill_rand(float *A, unsigned long long nr_rows_A, unsigned long long nr
 
 int main(int argc, char ** argv){
 
+<<<<<<< Updated upstream
   int my_rank, num_pes;
   int num_gpus_per_node;
 
@@ -91,6 +95,9 @@ int main(int argc, char ** argv){
 
     
   std::cout << "Number of available GPUs: " << deviceCount << std::endl;
+=======
+
+>>>>>>> Stashed changes
   unsigned long long min_m_k_n = 1024;
   unsigned long long max_m_k_n = 16384*2;
   int repeats = 100;
@@ -168,6 +175,7 @@ int main(int argc, char ** argv){
           sum += elapsed;
       }
     }
+<<<<<<< Updated upstream
   std::cout << "MPI Rank: " << my_rank
               << ", SLURM Node ID: " << hostname
               << ", GPU ID: " << gpu_id
@@ -175,6 +183,10 @@ int main(int argc, char ** argv){
               << " average: " << sum/75 << " s " << std::endl;
   // cout << "bfloat16: size " 
   // << size << " average: " << sum/75 << " s "<< endl;
+=======
+  cout << "bfloat16: size " 
+  << size << " average: " << sum/75 << " s "<< endl;
+>>>>>>> Stashed changes
 
   }
 
